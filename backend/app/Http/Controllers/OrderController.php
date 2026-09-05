@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -13,7 +14,7 @@ class OrderController extends Controller
     private function isAdminOrManager(Request $request)
     {
         $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array($role->name, ['admin', 'manager']);
+        return $role && in_array(strtolower($role->name), ['admin', 'manager']);
     }
 
     /**
@@ -25,7 +26,7 @@ class OrderController extends Controller
             ->join('customers', 'orders.customer_id', '=', 'customers.id')
             ->select('orders.*', 'customers.name as customer_name')
             ->orderBy('orders.order_date', 'desc')
-            ->paginate(15);
+            ->get();
             
         return response()->json($orders);
     }
@@ -73,69 +74,81 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric',
+            'items.*.promotion_id' => 'nullable|integer'
         ]);
 
         DB::beginTransaction();
         try {
             $totalAmount = 0;
-            // First pass: validate stock
+            $totalDiscount = 0;
+            $finalAmount = 0;
+
+            $itemsData = [];
+
+            // Compute totals and discounts, but do NOT deduct inventory yet
             foreach ($validated['items'] as $item) {
-                $product = DB::table('products')->where('id', $item['product_id'])->lockForUpdate()->first();
-                if (!$product || $product->stock_quantity < $item['quantity']) {
-                    throw new \Exception("Product ID {$item['product_id']} is out of stock.");
+                $product = DB::table('products')->where('id', $item['product_id'])->first();
+                if (!$product) {
+                    throw new \Exception("Product ID {$item['product_id']} not found.");
                 }
-                $totalAmount += ($item['unit_price'] * $item['quantity']);
+
+                $quantity = $item['quantity'];
+                $unitPrice = $item['unit_price']; // price before discount
+                $itemTotalBeforeDiscount = $unitPrice * $quantity;
+                $itemDiscount = 0;
+
+                // Validate promotion if provided
+                if (!empty($item['promotion_id'])) {
+                    $promo = DB::table('promotions')->where('id', $item['promotion_id'])->first();
+                    if ($promo && $promo->status === 'Active' && now()->between($promo->start_date, $promo->end_date)) {
+                        if ($promo->discount_type === 'PERCENT') {
+                            $itemDiscount = $itemTotalBeforeDiscount * ($promo->discount_value / 100);
+                        } else {
+                            $itemDiscount = $promo->discount_value * $quantity;
+                        }
+                    }
+                }
+
+                $itemTotal = $itemTotalBeforeDiscount - $itemDiscount;
+                $itemProfit = $itemTotal - ($product->cost_price * $quantity);
+
+                $totalAmount += $itemTotalBeforeDiscount;
+                $totalDiscount += $itemDiscount;
+                $finalAmount += $itemTotal;
+
+                $itemsData[] = [
+                    'product_id' => $product->id,
+                    'promotion_id' => !empty($item['promotion_id']) ? $item['promotion_id'] : null,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'cost_price' => $product->cost_price,
+                    'discount_amount' => $itemDiscount,
+                    'total' => $itemTotal,
+                    'profit' => $itemProfit,
+                ];
             }
 
-            // Create Order
+            // Create Order as Pending
             $orderId = DB::table('orders')->insertGetId([
                 'customer_id' => $validated['customer_id'],
                 'staff_id' => $request->user()->id,
                 'total_amount' => $totalAmount,
-                'final_amount' => $totalAmount,
-                'status' => 'Completed',
+                'discount_amount' => $totalDiscount,
+                'final_amount' => $finalAmount,
+                'status' => 'Pending',
                 'order_date' => now(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
-            // Process Items
-            foreach ($validated['items'] as $item) {
-                $product = DB::table('products')->where('id', $item['product_id'])->first();
-                
-                // 1. Ghi Order Details
-                DB::table('order_details')->insert([
-                    'order_id' => $orderId,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'cost_price' => $product->cost_price,
-                    'total' => $item['unit_price'] * $item['quantity'],
-                    'profit' => ($item['unit_price'] - $product->cost_price) * $item['quantity'],
-                ]);
-
-                // 2. Trừ tồn kho tự động & Ghi log Inventory Transactions
-                DB::table('products')->where('id', $product->id)->decrement('stock_quantity', $item['quantity']);
-                
-                DB::table('inventory_transactions')->insert([
-                    'product_id' => $product->id,
-                    'type' => 'OUT',
-                    'quantity' => $item['quantity'],
-                    'reference_type' => 'order',
-                    'reference_id' => $orderId,
-                    'note' => "Order {$orderId} creation",
-                    'created_at' => now()
-                ]);
+            // Save Items
+            foreach ($itemsData as $data) {
+                $data['order_id'] = $orderId;
+                DB::table('order_details')->insert($data);
             }
 
-            // 3. Update Customer Stats (Simple aggregation fallback)
-            // Cập nhật tổng chi tiêu (có thể dùng Trigger hoặc queue trong thực tế)
-            DB::table('customers')->where('id', $validated['customer_id'])->increment('total_spending', $totalAmount);
-            DB::table('customers')->where('id', $validated['customer_id'])->increment('total_orders', 1);
-            DB::table('customers')->where('id', $validated['customer_id'])->update(['last_purchase_date' => now()]);
-
             DB::commit();
-            return response()->json(['message' => 'Order created', 'id' => $orderId], 201);
+            return response()->json(['message' => 'Order created successfully', 'id' => $orderId], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Error creating order', 'error' => $e->getMessage()], 500);
@@ -143,7 +156,7 @@ class OrderController extends Controller
     }
 
     /**
-     * Update order status (Admin/Manager only)
+     * Update order status (Admin/Manager only for Cancel/Refund)
      */
     public function update(Request $request, $id)
     {
@@ -154,40 +167,143 @@ class OrderController extends Controller
             'status' => 'required|string|in:Pending,Confirmed,Processing,Completed,Cancelled,Refunded'
         ]);
 
-        if (in_array($validated['status'], ['Cancelled', 'Refunded']) && !$this->isAdminOrManager($request)) {
+        $newStatus = $validated['status'];
+        $oldStatus = $order->status;
+
+        if ($newStatus === $oldStatus) {
+            return response()->json(['message' => 'Order is already in this status']);
+        }
+
+        if (in_array($newStatus, ['Cancelled', 'Refunded']) && !$this->isAdminOrManager($request)) {
             return response()->json(['message' => 'Forbidden. Only Admin or Manager can cancel or refund orders.'], 403);
         }
 
         DB::beginTransaction();
         try {
-            // Nếu đơn bị hủy hoặc hoàn tiền -> Phục hồi tồn kho (Restock)
-            if (in_array($validated['status'], ['Cancelled', 'Refunded']) && !in_array($order->status, ['Cancelled', 'Refunded'])) {
-                $items = DB::table('order_details')->where('order_id', $id)->get();
+            $items = DB::table('order_details')->where('order_id', $id)->get();
+            $orderDate = Carbon::parse($order->order_date)->toDateString();
+
+            // Transition TO Completed (from anything else)
+            if ($newStatus === 'Completed' && $oldStatus !== 'Completed') {
+                $totalProfit = 0;
+
+                // Validate stock and deduct
                 foreach ($items as $item) {
-                    DB::table('products')->where('id', $item->product_id)->increment('stock_quantity', $item->quantity);
-                    
+                    $product = DB::table('products')->where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($product->stock_quantity < $item->quantity) {
+                        throw new \Exception("Insufficient stock for product: {$product->name}. Requested: {$item->quantity}, Available: {$product->stock_quantity}");
+                    }
+
+                    // Deduct stock
+                    DB::table('products')->where('id', $item->product_id)->decrement('stock_quantity', $item->quantity);
+
+                    // Log OUT transaction
                     DB::table('inventory_transactions')->insert([
                         'product_id' => $item->product_id,
-                        'type' => 'IN',
+                        'user_id' => $request->user()->id,
+                        'type' => 'OUT',
                         'quantity' => $item->quantity,
                         'reference_type' => 'order',
                         'reference_id' => $id,
-                        'note' => "Order {$id} {$validated['status']} - Restock",
+                        'note' => "Order {$id} completed",
                         'created_at' => now()
+                    ]);
+
+                    $totalProfit += $item->profit;
+                }
+
+                // Update Customer metrics
+                DB::table('customers')->where('id', $order->customer_id)->increment('total_spending', $order->final_amount);
+                DB::table('customers')->where('id', $order->customer_id)->increment('total_orders', 1);
+                DB::table('customers')->where('id', $order->customer_id)->update(['last_purchase_date' => now()]);
+
+                // Update Revenue Daily
+                $daily = DB::table('revenue_daily')->where('date', $orderDate)->first();
+                if ($daily) {
+                    DB::table('revenue_daily')->where('date', $orderDate)->update([
+                        'total_revenue' => DB::raw("total_revenue + {$order->final_amount}"),
+                        'total_profit' => DB::raw("total_profit + {$totalProfit}"),
+                        'total_orders' => DB::raw("total_orders + 1"),
+                        'updated_at' => now()
+                    ]);
+                } else {
+                    DB::table('revenue_daily')->insert([
+                        'date' => $orderDate,
+                        'total_revenue' => $order->final_amount,
+                        'total_profit' => $totalProfit,
+                        'total_orders' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now()
                     ]);
                 }
             }
 
+            // Transition TO Refunded (from Completed)
+            if ($newStatus === 'Refunded' && $oldStatus === 'Completed') {
+                $totalProfit = 0;
+
+                foreach ($items as $item) {
+                    // Add stock back
+                    DB::table('products')->where('id', $item->product_id)->increment('stock_quantity', $item->quantity);
+                    
+                    // Log IN transaction
+                    DB::table('inventory_transactions')->insert([
+                        'product_id' => $item->product_id,
+                        'user_id' => $request->user()->id,
+                        'type' => 'IN',
+                        'quantity' => $item->quantity,
+                        'reference_type' => 'order',
+                        'reference_id' => $id,
+                        'note' => "Order {$id} refunded - Restock",
+                        'created_at' => now()
+                    ]);
+
+                    $totalProfit += $item->profit;
+                }
+
+                // Revert Customer metrics
+                DB::table('customers')->where('id', $order->customer_id)->decrement('total_spending', $order->final_amount);
+                DB::table('customers')->where('id', $order->customer_id)->decrement('total_orders', 1);
+
+                // Revert Revenue Daily
+                DB::table('revenue_daily')->where('date', $orderDate)->update([
+                    'total_revenue' => DB::raw("total_revenue - {$order->final_amount}"),
+                    'total_profit' => DB::raw("total_profit - {$totalProfit}"),
+                    'total_orders' => DB::raw("total_orders - 1"),
+                    'updated_at' => now()
+                ]);
+            }
+
+            // Note: If transitioning to Cancelled (from Pending/Processing), no stock/revenue changes are needed.
+
+            // Save new status
             DB::table('orders')->where('id', $id)->update([
-                'status' => $validated['status'],
+                'status' => $newStatus,
                 'updated_at' => now()
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'Order status updated']);
+            return response()->json(['message' => "Order status updated to {$newStatus}"]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error updating order', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Error updating order', 'error' => $e->getMessage()], 422);
         }
+    }
+
+    public function getCustomers()
+    {
+        return response()->json(DB::table('customers')->select('id', 'name', 'phone')->get());
+    }
+
+    public function getPromotions()
+    {
+        return response()->json(
+            DB::table('promotions')
+                ->where('status', 'Active')
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->select('id', 'name', 'discount_type', 'discount_value')
+                ->get()
+        );
     }
 }
