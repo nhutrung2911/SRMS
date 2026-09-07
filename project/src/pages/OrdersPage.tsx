@@ -77,7 +77,6 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
   }, [drawerOrder]);
 
   const loadReferenceData = async () => {
-    if (customers.length > 0) return;
     try {
       const [cRes, pRes, prRes] = await Promise.all([
         api.get('/reference/customers'),
@@ -125,9 +124,13 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
     (updated[index] as any)[field] = value;
     
     // Auto-fill price if product is selected
-    if (field === 'product_id' && value) {
-      const p = products.find(prod => prod.id.toString() === value);
-      if (p) updated[index].unit_price = p.current_price.toString();
+    if (field === 'product_id') {
+      if (value) {
+        const p = products.find(prod => prod.id.toString() === value);
+        if (p) updated[index].unit_price = (p.current_price ?? 0).toString();
+      } else {
+        updated[index].unit_price = '';
+      }
     }
 
     setNewOrder({ ...newOrder, items: updated });
@@ -378,20 +381,26 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
                     </div>
                     <div className="w-28">
                       <input
-                        type="number" placeholder="Price"
-                        value={item.unit_price}
-                        onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                        className="w-full h-9 px-2 rounded-md border border-ink-200 text-sm focus:outline-none focus:border-brand-500"
+                        type="text"
+                        placeholder="Price"
+                        value={item.unit_price ? Number(item.unit_price).toLocaleString('vi-VN') : ''}
+                        readOnly
+                        title="Unit price is automatically loaded from product catalog (Readonly)"
+                        className="w-full h-9 px-2 rounded-md border border-ink-200 bg-ink-100 text-ink-700 font-medium text-sm cursor-not-allowed select-none focus:outline-none"
                       />
                     </div>
-                    <div className="w-32">
+                    <div className="w-36">
                       <select
                         value={item.promotion_id}
                         onChange={(e) => handleItemChange(index, 'promotion_id', e.target.value)}
                         className="w-full h-9 px-2 rounded-md border border-ink-200 text-sm focus:outline-none focus:border-brand-500"
                       >
                         <option value="">No Promo</option>
-                        {promotions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {promotions.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.discount_type === 'PERCENT' ? `(-${parseFloat(p.discount_value)}%)` : `(-${Number(p.discount_value).toLocaleString('vi-VN')}đ)`}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <button onClick={() => handleRemoveItem(index)} className="w-9 h-9 flex items-center justify-center text-danger-500 hover:bg-danger-50 rounded-md">

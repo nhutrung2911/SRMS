@@ -93,7 +93,8 @@ class OrderController extends Controller
                 }
 
                 $quantity = $item['quantity'];
-                $unitPrice = $item['unit_price']; // price before discount
+                // Enforce current_price from products table to prevent client tampering and respect RBAC
+                $unitPrice = $product->current_price;
                 $itemTotalBeforeDiscount = $unitPrice * $quantity;
                 $itemDiscount = 0;
 
