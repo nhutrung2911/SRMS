@@ -117,8 +117,8 @@ function App() {
       case 'customer-detail': return <CustomerDetailPage navigate={navigate} customerId={params.customerId ?? 'C001'} />;
       case 'inventory': return <InventoryPage navigate={navigate} addToast={addToast} />;
 
-      case 'promotions': return <PromotionsPage navigate={navigate} />;
-      case 'promotion-detail': return <PromotionDetailPage navigate={navigate} promotionId={params.promotionId ?? 'PR001'} />;
+      case 'promotions': return <PromotionsPage navigate={navigate} addToast={addToast} />;
+      case 'promotion-detail': return <PromotionDetailPage navigate={navigate} promotionId={params.promotionId ?? '21'} addToast={addToast} />;
       case 'ai-recommendations': return <AIRecommendationsPage navigate={navigate} addToast={addToast} />;
       case 'ai-insight-detail': return <AIInsightDetailPage navigate={navigate} />;
       case 'products': return <ProductsPage navigate={navigate} addToast={addToast} />;

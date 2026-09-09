@@ -8,6 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\PromotionController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -52,5 +53,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}', [OrderController::class, 'update']);
     Route::get('/reference/customers', [OrderController::class, 'getCustomers']);
     Route::get('/reference/promotions', [OrderController::class, 'getPromotions']);
+    
+    // Promotions
+    Route::get('/promotions/kpis', [PromotionController::class, 'getKpis']);
+    Route::get('/promotions', [PromotionController::class, 'index']);
+    Route::get('/promotions/{id}', [PromotionController::class, 'show']);
+    Route::post('/promotions', [PromotionController::class, 'store']);
+    Route::put('/promotions/{id}', [PromotionController::class, 'update']);
+    Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
     
 });
