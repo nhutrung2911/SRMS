@@ -108,7 +108,7 @@ function App() {
     switch (page) {
       case 'dashboard': return <DashboardPage navigate={navigate} addToast={addToast} />;
       case 'revenue-analytics': return <RevenueAnalyticsPage navigate={navigate} addToast={addToast} />;
-      case 'forecast': return <ForecastPage navigate={navigate} />;
+      case 'forecast': return <ForecastPage navigate={navigate} addToast={addToast} />;
       case 'products-analytics': return <ProductAnalyticsPage navigate={navigate} addToast={addToast} />;
       case 'product-detail': return <ProductEditPage navigate={navigate} productId={params.productId} />;
       case 'orders': return <OrdersPage navigate={navigate} />;
@@ -120,7 +120,7 @@ function App() {
       case 'promotions': return <PromotionsPage navigate={navigate} addToast={addToast} />;
       case 'promotion-detail': return <PromotionDetailPage navigate={navigate} promotionId={params.promotionId ?? '21'} addToast={addToast} />;
       case 'ai-recommendations': return <AIRecommendationsPage navigate={navigate} addToast={addToast} />;
-      case 'ai-insight-detail': return <AIInsightDetailPage navigate={navigate} />;
+      case 'ai-insight-detail': return <AIInsightDetailPage navigate={navigate} addToast={addToast} />;
       case 'products': return <ProductsPage navigate={navigate} addToast={addToast} />;
       case 'product-edit': return <ProductEditPage navigate={navigate} productId={params.productId} />;
       case 'users': return <UsersPage navigate={navigate} addToast={addToast} />;

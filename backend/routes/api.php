@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\ForecastController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -61,5 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/promotions', [PromotionController::class, 'store']);
     Route::put('/promotions/{id}', [PromotionController::class, 'update']);
     Route::delete('/promotions/{id}', [PromotionController::class, 'destroy']);
+    
+    // Forecast & AI Insights
+    Route::get('/forecast', [ForecastController::class, 'getForecast']);
+    Route::get('/insights', [ForecastController::class, 'getInsights']);
     
 });
