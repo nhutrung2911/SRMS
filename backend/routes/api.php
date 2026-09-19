@@ -10,6 +10,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ForecastController;
+use App\Http\Controllers\CustomerController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/chart', [DashboardController::class, 'getChartData']);
     Route::get('/analytics/products', [AnalyticsController::class, 'getProductAnalytics']);
     Route::get('/analytics/customers', [AnalyticsController::class, 'getCustomerAnalytics']);
+    Route::get('/analytics/revenue', [AnalyticsController::class, 'getRevenueAnalytics']);
 
     // Recommendations
     Route::get('/recommendations', [\App\Http\Controllers\RecommendationController::class, 'index']);
@@ -54,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}', [OrderController::class, 'update']);
     Route::get('/reference/customers', [OrderController::class, 'getCustomers']);
     Route::get('/reference/promotions', [OrderController::class, 'getPromotions']);
+    
+    // Customers
+    Route::get('/customers/{id}', [CustomerController::class, 'show']);
+    Route::post('/customers', [CustomerController::class, 'store']);
+    Route::put('/customers/{id}', [CustomerController::class, 'update']);
     
     // Promotions
     Route::get('/promotions/kpis', [PromotionController::class, 'getKpis']);

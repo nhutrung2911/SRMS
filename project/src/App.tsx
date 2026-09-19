@@ -114,7 +114,7 @@ function App() {
       case 'orders': return <OrdersPage navigate={navigate} />;
       case 'order-detail': return <OrdersPage navigate={navigate} initialOrderId={params.orderId} />;
       case 'customers-analytics': return <CustomersPage navigate={navigate} addToast={addToast} />;
-      case 'customer-detail': return <CustomerDetailPage navigate={navigate} customerId={params.customerId ?? 'C001'} />;
+      case 'customer-detail': return <CustomerDetailPage navigate={navigate} customerId={params.customerId ?? '1'} addToast={addToast} />;
       case 'inventory': return <InventoryPage navigate={navigate} addToast={addToast} />;
 
       case 'promotions': return <PromotionsPage navigate={navigate} addToast={addToast} />;

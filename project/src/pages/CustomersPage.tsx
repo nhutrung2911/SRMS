@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/Badge';
 import { KpiGrid } from '@/components/ui/KpiCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Progress } from '@/components/ui/Progress';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { formatCurrency } from '@/data';
 import type { CustomerRow, CustomerSegment, CustomerStatus, Kpi } from '@/types';
-import { Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronDown, ChevronLeft, ChevronRight, UserPlus, Loader2 } from 'lucide-react';
 import api from '@/services/api';
 
 const segmentVariant: Record<string, any> = {
@@ -42,6 +44,47 @@ export function CustomersPage({ navigate, addToast }: PageProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  // Add Customer Modal State
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formAddress, setFormAddress] = useState('');
+
+  const handleCreateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      addToast?.({ type: 'warning', title: 'Validation error', message: 'Customer name is required.' });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post('/customers', {
+        name: formName.trim(),
+        email: formEmail.trim() || null,
+        phone: formPhone.trim() || null,
+        address: formAddress.trim() || null,
+      });
+
+      addToast?.({ type: 'success', title: 'Customer registered', message: `Customer "${formName}" was registered successfully.` });
+      setAddModalOpen(false);
+      setFormName('');
+      setFormEmail('');
+      setFormPhone('');
+      setFormAddress('');
+      fetchAnalytics(currentPage, segment);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.errors
+        ? Object.values(err.response.data.errors).flat().join(' ')
+        : (err.response?.data?.message || 'Failed to register customer.');
+      addToast?.({ type: 'danger', title: 'Registration failed', message: errMsg });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const fetchAnalytics = async (page = 1, filterSegment = 'all') => {
     setLoading(true);
@@ -117,6 +160,11 @@ export function CustomersPage({ navigate, addToast }: PageProps) {
         title="Customer Analytics"
         subtitle="Understand customer behavior, segments, and lifetime value."
         breadcrumbs={[{ label: 'Commerce' }, { label: 'Customer Analytics' }]}
+        actions={
+          <Button variant="primary" size="md" icon={<UserPlus className="w-4 h-4" />} onClick={() => setAddModalOpen(true)}>
+            Add Customer
+          </Button>
+        }
       />
 
       <KpiGrid kpis={kpis} />
@@ -243,6 +291,83 @@ export function CustomersPage({ navigate, addToast }: PageProps) {
           onRowClick={(c) => navigate('customer-detail', { customerId: c.id })}
         />
       </Card>
+
+      {/* Create Customer Modal */}
+      <Modal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        title="Register New Customer"
+      >
+        <form onSubmit={handleCreateCustomer} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 mb-1">
+              Customer Name <span className="text-danger-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Nguyen Van A"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="w-full px-3 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 mb-1">Email Address</label>
+            <input
+              type="email"
+              placeholder="e.g. customer@example.com"
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              placeholder="e.g. 0901234567"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value)}
+              className="w-full px-3 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 mb-1">Shipping Address</label>
+            <textarea
+              rows={2}
+              placeholder="e.g. 123 Nguyen Trai, Q.1, TP.HCM"
+              value={formAddress}
+              onChange={(e) => setFormAddress(e.target.value)}
+              className="w-full px-3 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-ink-100">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => setAddModalOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={submitting}
+              icon={submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            >
+              {submitting ? 'Registering...' : 'Register Customer'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

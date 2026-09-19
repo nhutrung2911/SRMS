@@ -270,4 +270,224 @@ class AnalyticsController extends Controller
             'customers' => $customers
         ]);
     }
+
+    /**
+     * Get multi-dimensional Revenue Analytics.
+     * Note: Channel grouping is deliberately omitted because the schema does not store sales channel.
+     * Monthly trend groups by DATE_FORMAT(date, '%Y-%m') to prevent collision across years.
+     */
+    public function getRevenueAnalytics(Request $request)
+    {
+        if (!$this->isAdminOrManager($request)) {
+            return response()->json(['message' => 'Forbidden. Only Admin or Manager can view analytics.'], 403);
+        }
+
+        $range = $request->query('range', '30_days');
+        $days = 30;
+        if ($range === '7_days') $days = 7;
+        elseif ($range === '90_days') $days = 90;
+        elseif ($range === 'year') $days = 365;
+
+        // 1. Calculate Period KPIs using revenue_daily
+        $startDate = Carbon::now()->subDays($days)->toDateString();
+        $prevStartDate = Carbon::now()->subDays($days * 2)->toDateString();
+        $prevEndDate = Carbon::now()->subDays($days)->subDay()->toDateString();
+
+        $stats = DB::table('revenue_daily')
+            ->where('date', '>=', $startDate)
+            ->select(
+                DB::raw('SUM(total_revenue) as total_revenue'),
+                DB::raw('SUM(total_profit) as total_profit'),
+                DB::raw('SUM(total_orders) as total_orders')
+            )
+            ->first();
+
+        $prevStats = DB::table('revenue_daily')
+            ->whereBetween('date', [$prevStartDate, $prevEndDate])
+            ->select(
+                DB::raw('SUM(total_revenue) as total_revenue'),
+                DB::raw('SUM(total_profit) as total_profit'),
+                DB::raw('SUM(total_orders) as total_orders')
+            )
+            ->first();
+
+        $revenue = (float) ($stats->total_revenue ?? 0);
+        $profit = (float) ($stats->total_profit ?? 0);
+        $orders = (int) ($stats->total_orders ?? 0);
+        $margin = $revenue > 0 ? round(($profit / $revenue) * 100, 1) : 0;
+
+        $calcGrowth = function($current, $prev) {
+            if ($prev > 0) return round((($current - $prev) / $prev) * 100, 1);
+            return null;
+        };
+
+        $prevRev = (float) ($prevStats->total_revenue ?? 0);
+        $prevProf = (float) ($prevStats->total_profit ?? 0);
+        $prevOrd = (int) ($prevStats->total_orders ?? 0);
+        $prevMargin = $prevRev > 0 ? round(($prevProf / $prevRev) * 100, 1) : 0;
+
+        $revenueGrowth = $calcGrowth($revenue, $prevRev);
+        $profitGrowth = $calcGrowth($profit, $prevProf);
+        $ordersGrowth = $calcGrowth($orders, $prevOrd);
+        $marginDiff = $prevRev > 0 ? round($margin - $prevMargin, 1) : null;
+
+        $kpis = [
+            [
+                'id' => 'revenue',
+                'label' => 'Total Revenue',
+                'value' => '₫' . number_format($revenue, 0, ',', '.') . '₫',
+                'rawValue' => $revenue,
+                'change' => $revenueGrowth,
+                'direction' => $revenueGrowth === null ? 'flat' : ($revenueGrowth >= 0 ? 'up' : 'down'),
+                'sublabel' => 'vs previous period',
+                'format' => 'currency',
+            ],
+            [
+                'id' => 'profit',
+                'label' => 'Gross Profit',
+                'value' => '₫' . number_format($profit, 0, ',', '.') . '₫',
+                'rawValue' => $profit,
+                'change' => $profitGrowth,
+                'direction' => $profitGrowth === null ? 'flat' : ($profitGrowth >= 0 ? 'up' : 'down'),
+                'sublabel' => 'vs previous period',
+                'format' => 'currency',
+            ],
+            [
+                'id' => 'margin',
+                'label' => 'Profit Margin',
+                'value' => $margin . '%',
+                'rawValue' => $margin,
+                'change' => $marginDiff,
+                'direction' => $marginDiff === null ? 'flat' : ($marginDiff >= 0 ? 'up' : 'down'),
+                'sublabel' => 'vs previous period',
+                'format' => 'percent',
+            ],
+            [
+                'id' => 'orders',
+                'label' => 'Total Orders',
+                'value' => number_format($orders, 0, ',', '.'),
+                'rawValue' => $orders,
+                'change' => $ordersGrowth,
+                'direction' => $ordersGrowth === null ? 'flat' : ($ordersGrowth >= 0 ? 'up' : 'down'),
+                'sublabel' => 'vs previous period',
+                'format' => 'number',
+            ],
+            [
+                'id' => 'growth',
+                'label' => 'Revenue Growth',
+                'value' => $revenueGrowth !== null ? ($revenueGrowth >= 0 ? "+{$revenueGrowth}%" : "{$revenueGrowth}%") : 'N/A',
+                'rawValue' => $revenueGrowth,
+                'change' => $revenueGrowth,
+                'direction' => $revenueGrowth === null ? 'flat' : ($revenueGrowth >= 0 ? 'up' : 'down'),
+                'sublabel' => 'period acceleration',
+                'format' => 'percent',
+            ],
+        ];
+
+        // 2. Monthly Trend grouped by YEAR-MONTH (%Y-%m)
+        // Note: Using period_month alias because YEAR_MONTH is a reserved keyword in MySQL.
+        $monthlyTrend = DB::table('revenue_daily')
+            ->select(
+                DB::raw("DATE_FORMAT(date, '%Y-%m') as period_month"),
+                DB::raw("SUM(total_revenue) as revenue"),
+                DB::raw("SUM(total_profit) as profit"),
+                DB::raw("SUM(total_orders) as orders")
+            )
+            ->groupBy('period_month')
+            ->orderBy('period_month', 'asc')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'label' => Carbon::createFromFormat('Y-m', $row->period_month)->format('M y'),
+                    'year_month' => $row->period_month,
+                    'revenue' => (float) $row->revenue,
+                    'profit' => (float) $row->profit,
+                    'orders' => (int) $row->orders,
+                ];
+            });
+
+        // 3. Revenue by Category
+        $categoryColors = ['#1E66F3', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#64748B'];
+        $categoryRevenue = DB::table('order_details')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->where('orders.status', 'Completed')
+            ->select(
+                'categories.name as category',
+                DB::raw('SUM(order_details.total) as revenue')
+            )
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('revenue')
+            ->get()
+            ->map(function ($row, $index) use ($categoryColors) {
+                return [
+                    'category' => $row->category,
+                    'revenue' => (float) $row->revenue,
+                    'color' => $categoryColors[$index % count($categoryColors)],
+                ];
+            });
+
+        // 4. Revenue by Customer Segment (reusing customer_segments)
+        $segmentColors = [
+            'Champions' => '#1E66F3',
+            'Loyal' => '#10B981',
+            'Potential Loyalists' => '#F59E0B',
+            'Recent' => '#3B82F6',
+            'At Risk' => '#EF4444',
+            'Lost' => '#64748B',
+        ];
+        $segmentRevenue = DB::table('customer_segments')
+            ->join('customers', 'customer_segments.customer_id', '=', 'customers.id')
+            ->select(
+                'customer_segments.segment_name as segment',
+                DB::raw('SUM(customers.total_spending) as revenue')
+            )
+            ->groupBy('customer_segments.segment_name')
+            ->orderByDesc('revenue')
+            ->get();
+
+        $totalSegmentRev = $segmentRevenue->sum('revenue');
+        $segmentData = $segmentRevenue->map(function ($s) use ($totalSegmentRev, $segmentColors) {
+            $rev = (float) $s->revenue;
+            return [
+                'segment' => $s->segment,
+                'revenue' => $rev,
+                'share' => $totalSegmentRev > 0 ? round(($rev / $totalSegmentRev) * 100, 1) : 0,
+                'color' => $segmentColors[$s->segment] ?? '#94A3B8',
+            ];
+        });
+
+        // 5. Top 8 Products by Revenue
+        $topProducts = DB::table('order_details')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->where('orders.status', 'Completed')
+            ->select(
+                'products.name as product',
+                'products.sku',
+                DB::raw('SUM(order_details.total) as revenue')
+            )
+            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->orderByDesc('revenue')
+            ->take(8)
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'product' => $row->product,
+                    'sku' => $row->sku,
+                    'revenue' => (float) $row->revenue,
+                    'color' => '#1E66F3',
+                ];
+            });
+
+        return response()->json([
+            'range' => $range,
+            'kpis' => $kpis,
+            'monthly_trend' => $monthlyTrend,
+            'category_revenue' => $categoryRevenue,
+            'segment_revenue' => $segmentData,
+            'top_products' => $topProducts,
+        ]);
+    }
 }
