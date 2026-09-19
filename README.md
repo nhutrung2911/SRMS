@@ -1,192 +1,218 @@
 # SRMS — Smart Revenue Management System
 
-> Hệ thống quản lý và tối ưu doanh thu thông minh dành cho SME/E-commerce, biến dữ liệu bán hàng thô thành đề xuất hành động cụ thể cho nhà quản lý.
+> An intelligent revenue management and optimization platform for SMEs and E-commerce, transforming raw transactional data into actionable business recommendations for decision-makers.
 
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Backend](https://img.shields.io/badge/backend-Laravel-red)
+![Status](https://img.shields.io/badge/status-active%20development-green)
+![Backend](https://img.shields.io/badge/backend-Laravel%2011-red)
 ![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20Vite-blue)
-![Database](https://img.shields.io/badge/database-MySQL-orange)
+![Database](https://img.shields.io/badge/database-MySQL%208.0%2B-orange)
+![Security](https://img.shields.io/badge/auth-Sanctum%20RBAC-purple)
 
 ---
 
-## Mục lục
+## Table of Contents
 
-- [Vấn đề & Mục tiêu](#vấn-đề--mục-tiêu)
-- [Tính năng chính](#tính-năng-chính)
-- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Problem Statement & Objectives](#problem-statement--objectives)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
 - [Tech Stack](#tech-stack)
-- [Phân quyền người dùng](#phân-quyền-người-dùng)
-- [Cài đặt & Chạy dự án](#cài-đặt--chạy-dự-án)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Business Rules nổi bật](#business-rules-nổi-bật)
-- [Điểm khác biệt so với BI Tools thông thường](#điểm-khác-biệt-so-với-bi-tools-thông-thường)
-- [Ảnh chụp màn hình](#ảnh-chụp-màn-hình)
-- [Tác giả](#tác-giả)
+- [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
+- [Installation & Getting Started](#installation--getting-started)
+- [Directory Structure](#directory-structure)
+- [Core Business Rules](#core-business-rules)
+- [How SRMS Differs from Traditional BI Tools](#how-srms-differs-from-traditional-bi-tools)
+- [Screenshots](#screenshots)
+- [Author](#author)
 
 ---
 
-## Vấn đề & Mục tiêu
+## Problem Statement & Objectives
 
-Doanh nghiệp bán lẻ/E-commerce quy mô nhỏ thường có rất nhiều dữ liệu bán hàng nhưng khó khai thác: không biết sản phẩm nào thực sự sinh lời, khách hàng nào đáng giữ chân, khuyến mãi nào lãi thật hay chỉ tăng doanh thu ảo, hàng nào đang tồn đọng cần xử lý.
+Small and medium-sized retail and e-commerce businesses generate vast quantities of daily sales data but struggle to extract actionable value from it:
+* They cannot pinpoint which products genuinely drive net profit versus those generating hollow revenue.
+* They lack automated mechanisms to identify and retain high-value customer segments before they churn.
+* Promotional campaigns are often run on intuition rather than verified financial ROI.
+* Stagnant inventory ("dead stock") ties up capital while fast-selling items unexpectedly run out of stock.
 
-SRMS được xây dựng để giải quyết chuỗi vấn đề đó theo đúng quy trình:
+**SRMS** was architected to solve this end-to-end operational bottleneck through a continuous, closed-loop decision cycle:
 
 ```
-Dữ liệu bán hàng → Phân tích (Analytics) → Insight → Đề xuất (Recommendation) → Hành động của Manager → Đo lường hiệu quả
+Sales Transactions → Real-time Analytics → AI Insights → Actionable Recommendations → Manager Decision → Post-Action Impact Measurement
 ```
 
-Điểm quan trọng: hệ thống không dừng lại ở việc **hiển thị** báo cáo, mà **chủ động đề xuất hành động** dựa trên rule/thống kê thực tế, và có khả năng **đo lường lại hiệu quả** sau khi hành động được áp dụng — đóng kín vòng lặp ra quyết định.
+> **Key Distinction:** Unlike passive reporting dashboards, SRMS proactively detects operational risks, formulates concrete business recommendations, executes actions with a single click, and continuously tracks post-action financial impact.
 
 ---
 
-## Tính năng chính
+## Key Features
 
-### 📊 Revenue Dashboard
-KPI tổng quan (Revenue, Profit, Margin, Orders, AOV) với so sánh tăng trưởng theo kỳ (Today/Month/Year), biểu đồ xu hướng doanh thu/lợi nhuận theo khung thời gian tùy chỉnh (7/30/90 ngày).
+### 📊 Executive Revenue Dashboard
+High-level financial KPIs (Total Revenue, Gross Profit, Profit Margin %, Total Orders, Average Order Value) paired with period-over-period growth comparisons (Today, This Month, This Year) and dynamic revenue trend charts across customizable timeframes (7, 30, and 90 days).
 
-### 🧩 Product Analytics
-Phân tích doanh thu theo danh mục, phát hiện sản phẩm bán chạy (Fast-moving) và tồn kho lâu ngày (Slow-moving/Dead-stock), đánh giá **ROI thực tế của từng chương trình khuyến mãi** — trả lời câu hỏi "khuyến mãi này có thực sự sinh lời hay chỉ tăng doanh thu ảo".
+### 📈 Multi-Dimensional Revenue Analytics
+Comprehensive performance breakdown across Product Categories, Customer Segments, and historical monthly trends (`%Y-%m`). Identifies Top 8 revenue-generating products without relying on fabricated dimensions or external data sources.
 
-### 👥 Customer Analytics — RFM Segmentation
-Phân khúc khách hàng tự động theo mô hình RFM (Recency, Frequency, Monetary): Champions, Loyal, At Risk, Lost, Recent, Inactive. Nhãn VIP được suy ra trực tiếp từ kết quả RFM, không phải rule tính riêng.
+### 🔮 Revenue Forecasting & Confidence Intervals
+Projects future sales velocity across 7-day, 30-day, and next-month horizons using a Simple Moving Average (SMA) combined with sample standard deviation ($\sigma$, with $N < 2$ safety guards) to construct an authentic 90% confidence interval ($1.645\sigma$). Employs a robust 2-period baseline comparison to calculate authentic revenue momentum and avoid tautological zero-trends.
 
-### 📦 Inventory Management
-Theo dõi tồn kho theo tốc độ bán hàng thực tế (sales velocity), phân loại rủi ro (Critical/High/Medium/Low) dựa trên cả mức tồn kho lẫn tốc độ luân chuyển — không chỉ đơn thuần đếm số lượng. Hỗ trợ nhập/xuất/điều chỉnh kho với audit trail đầy đủ.
+### 🧠 AI Insights & Recommendation Engine
+Synthesizes real-time database state across inventory velocity, profit margins, at-risk customer segments, and active promotional campaigns into prioritized, evidence-backed insights. Managers can review quantitative evidence and either **Apply** an automated action (e.g., repricing a slow-moving item or generating a targeted retention voucher) or **Dismiss** it with an audit trail.
 
-### 🤖 AI Recommendation Engine
-Tự động sinh đề xuất hành động (đổi giá, tạo khuyến mãi, nhập hàng, chăm sóc khách hàng) dựa trên rule-based analysis, kèm lý do (Reason) và mức độ ưu tiên (Priority) tính động theo dữ liệu thực tế. Cho phép Manager **Apply** để hệ thống tự thực thi hành động (ví dụ tự động cập nhật giá + ghi lịch sử), hoặc **Dismiss** nếu không phù hợp.
+### 👥 Customer Analytics & RFM Segmentation
+Automatically clusters customer behavior through algorithmic RFM analysis (Recency, Frequency, Monetary) into distinct operational segments: *Champions, Loyal, Potential Loyalists, Recent, At Risk,* and *Lost*. Includes dedicated customer profile pages displaying order histories, real spending trajectories, and VIP designations derived strictly from database records.
 
-### 📈 Post-Action Impact Analysis
-Sau khi một đề xuất về giá được áp dụng, hệ thống tự động đo lường và so sánh doanh thu/lợi nhuận trung bình mỗi ngày **trước và sau** thời điểm áp dụng — đóng vòng lặp "đề xuất → hành động → đo lường hiệu quả".
+### 🛍️ Order Management with ACID Financial Guarantees
+Complete transaction lifecycle (`Pending` $\rightarrow$ `Completed` $\rightarrow$ `Refunded` / `Cancelled`) wrapped in strict database transactions. Automatically calculates promotion discounts, prevents staff from tampering with fixed unit prices, atomically decrements/restores inventory levels, and aggregates customer lifetime spending.
+
+### 📦 Inventory Velocity & Stock Optimization
+Monitors warehouse quantities against calculated sales velocities, categorizing SKU risks (Critical, High, Medium, Low) based on estimated run-out horizons rather than naive unit counts. Supports audit-logged inventory adjustments (IN, OUT, ADJUSTMENT) with complete user attribution.
+
+### 🏷️ Promotion Performance & Financial Ratio
+Enables creation and lifecycle control of promotional campaigns. Evaluates real financial efficacy using Revenue-to-Discount Ratio and Pre/During/Post event analysis to prevent unprofitable discount leaks.
+
+### 🎯 Post-Action Impact Analysis
+Measures the real-world outcome of applied recommendations by benchmarking daily revenue and profit before versus after execution dates, closing the operational feedback loop.
 
 ---
 
-## Kiến trúc hệ thống
+## System Architecture
 
 ```
-┌─────────────────┐        REST API (JSON)        ┌──────────────────┐
-│   Frontend       │  ─────────────────────────►   │   Backend        │
-│   React + Vite   │  ◄─────────────────────────   │   Laravel        │
-│   (port 5173)    │      Bearer Token Auth         │   (port 8000)    │
-└─────────────────┘                                 └────────┬─────────┘
-                                                              │
-                                                              ▼
-                                                     ┌──────────────────┐
-                                                     │   MySQL Database  │
-                                                     │   (18+ tables)    │
-                                                     └──────────────────┘
+┌───────────────────────────┐         REST API (JSON)         ┌───────────────────────────┐
+│         Frontend          │  ────────────────────────────►  │          Backend          │
+│    React 18 + Vite + TS   │  ◄────────────────────────────  │     Laravel 11 Framework  │
+│        (port 5173)        │      Bearer Token (Sanctum)     │        (port 8000)        │
+└───────────────────────────┘                                 └─────────────┬─────────────┘
+                                                                            │
+                                                                            ▼
+                                                               ┌───────────────────────────┐
+                                                               │       MySQL 8.0+ DB       │
+                                                               │   (18 Relational Tables)  │
+                                                               └───────────────────────────┘
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer | Công nghệ |
+| Layer | Technologies & Libraries |
 |---|---|
-| Frontend | React, Vite, TypeScript, Tailwind CSS, Recharts |
-| Backend | Laravel (REST API) |
-| Auth | Laravel Sanctum (Bearer Token) |
-| Database | MySQL 8.0+ |
-| Dev Environment | Laragon (PHP + MySQL + Apache) |
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, Recharts |
+| **Backend** | Laravel 11 (RESTful Architecture), PHP 8.3 |
+| **Authentication & RBAC** | Laravel Sanctum (Token-based Auth with database-enforced role gates) |
+| **Database** | MySQL 8.0+ (InnoDB, strict foreign keys, composite indexes, pre-aggregated tables) |
+| **Development Environment** | Laragon / Docker (PHP 8.3, MySQL 8.0, Node.js 18+) |
 
 ---
 
-## Phân quyền người dùng
+## Role-Based Access Control (RBAC)
 
-| Vai trò | Quyền hạn chính |
+The system enforces strict multi-tier permissions across both frontend UI elements and backend controllers:
+
+| Role | Permitted Actions & Capabilities |
 |---|---|
-| **Admin** | Toàn quyền: quản lý người dùng, sản phẩm, danh mục, đơn hàng, tồn kho, giá, khuyến mãi, xem toàn bộ báo cáo/AI Insights |
-| **Manager** | Xem Dashboard/Analytics/Forecast/AI Insights, tạo khuyến mãi, đổi giá, áp dụng/từ chối đề xuất AI |
-| **Staff** | Xem sản phẩm, tạo đơn hàng, cập nhật trạng thái đơn (trừ Hủy/Hoàn tiền), xem tồn kho và thông tin khách hàng |
+| **Admin** | Unrestricted access: User administration, system settings, product catalog, orders, inventory audits, pricing, promotions, and full executive analytics. |
+| **Manager** | Strategic operations: Access Dashboards, Revenue/Product/Customer Analytics, Revenue Forecasts, and AI Insights. Can execute AI recommendations, adjust prices, and launch promotions. |
+| **Staff** | Sales & checkout: Register new customers, create orders with auto-applied promotions, update orders to Completed. **Restricted:** Cannot view confidential analytics, cannot edit product unit prices, and cannot cancel or refund orders (enforced by backend 403 Forbidden). |
 
 ---
 
-## Cài đặt & Chạy dự án
+## Installation & Getting Started
 
-### Yêu cầu môi trường
-- PHP >= 8.3, Composer
-- Node.js >= 18, npm
-- MySQL >= 8.0
+### Prerequisites
+- **PHP** >= 8.3 with extensions (`pdo_mysql`, `mbstring`, `openssl`, `bcmath`)
+- **Composer** >= 2.0
+- **Node.js** >= 18 and **npm**
+- **MySQL** >= 8.0
 
-### Backend (Laravel)
+### 1. Backend Setup (Laravel)
 
 ```bash
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
-# Cấu hình DB_* trong .env theo môi trường của bạn
+
+# Configure your database credentials (DB_DATABASE, DB_USERNAME, DB_PASSWORD) in .env
 php artisan migrate --seed
 php artisan serve
 ```
+*Backend server will start listening at `http://127.0.0.1:8000`.*
 
-### Frontend (React)
+### 2. Frontend Setup (React + Vite)
 
 ```bash
 cd project
 npm install
 npm run dev
 ```
+*Frontend application will start listening at `http://localhost:5173`.*
 
-Truy cập ứng dụng tại `http://localhost:5173`.
+### 3. Default Seeded Credentials
 
-**Tài khoản mặc định sau khi seed:**
-| Vai trò | Email | Mật khẩu |
+| Role | Email | Password |
 |---|---|---|
-| Admin | admin@srms.com | password |
-| Manager | manager@srms.com | password |
-| Staff | staff1@srms.com | password |
+| **Admin** | `admin@srms.com` | `password` |
+| **Manager** | `manager@srms.com` | `password` |
+| **Staff** | `staff1@srms.com` | `password` |
 
 ---
 
-## Cấu trúc thư mục
+## Directory Structure
 
 ```
 SRMS/
-├── backend/                 # Laravel REST API
-│   ├── app/Http/Controllers/
-│   ├── database/migrations/
-│   ├── database/seeders/
-│   └── routes/api.php
-├── project/                 # React SPA
-│   ├── src/pages/
-│   ├── src/components/
-│   └── src/services/
-└── schema.sql                # Tài liệu đối chiếu cấu trúc database
+├── backend/                         # Laravel REST API
+│   ├── app/
+│   │   ├── Http/Controllers/        # Controllers (Order, Product, Inventory, Forecast, Analytics, etc.)
+│   │   └── Models/                  # Eloquent models
+│   ├── database/
+│   │   ├── migrations/              # Database schema migrations
+│   │   └── seeders/                 # Realistic historical e-commerce seeders
+│   └── routes/
+│       └── api.php                  # Protected REST API endpoints
+├── project/                         # React SPA (Vite + TypeScript)
+│   ├── src/
+│   │   ├── components/              # UI design system (Cards, Charts, Modals, Badges, Layout)
+│   │   ├── pages/                   # Application views (Dashboard, Forecast, Analytics, Orders, etc.)
+│   │   ├── services/                # Axios API client & token interceptors
+│   │   └── types/                   # TypeScript interfaces & domain types
+└── schema.sql                       # Complete MySQL schema reference
 ```
 
 ---
 
-## Business Rules nổi bật
+## Core Business Rules
 
-- **BR01**: Chỉ đơn hàng có `status = Completed` mới được ghi nhận vào Revenue.
-- **BR02**: Khi đơn hàng hoàn tất, tồn kho tự động bị trừ tương ứng.
-- **BR06**: `Profit Margin = Profit / Selling Price × 100%`, tính theo giá bán **hiện tại**, không phải giá niêm yết gốc.
-- **BR07**: Không cho phép đặt giá bán thấp hơn giá vốn — áp dụng nhất quán cho cả luồng đổi giá thủ công lẫn tự động qua Recommendation Engine.
-- **VIP Rule**: Nhãn VIP được suy ra từ kết quả phân khúc RFM (Champions hoặc Loyal có Monetary cao), không phải một rule chi tiêu độc lập.
-
----
-
-## Điểm khác biệt so với BI Tools thông thường
-
-Các công cụ BI phổ biến (Power BI, Tableau...) giúp trực quan hóa và giải thích dữ liệu, nhưng dừng lại ở đó — người dùng vẫn phải tự phát hiện vấn đề và tự thực hiện hành động ở một hệ thống khác.
-
-SRMS đóng thêm 2 lớp mà BI tool thuần túy không có:
-1. **Chủ động phát hiện & đề xuất**: hệ thống tự quét dữ liệu và đẩy cảnh báo/đề xuất, không cần người dùng tự tìm.
-2. **Đóng vòng lặp hành động — đo lường**: vì hệ thống sở hữu cả tầng giao dịch, sau khi một đề xuất được áp dụng, nó có thể tự động đo lại hiệu quả thực tế của chính hành động đó.
+- **BR01 — Revenue Recognition:** Only orders marked as `Completed` are recognized in financial revenue and profit metrics.
+- **BR02 — Atomicity & Stock Deduction:** When an order transitions to `Completed`, product inventory is decremented atomically within a database transaction, and an `inventory_transactions` audit record is created.
+- **BR03 — Order Refund Lifecycle:** Refunding an order atomically restores warehouse quantities, reverses customer lifetime spending, and adjusts daily financial totals.
+- **BR04 — Margin Formulation:** `Gross Profit = Selling Price - Cost Price - Discount Amount`. `Profit Margin = (Profit / Selling Price) × 100%`, evaluated against current selling prices.
+- **BR05 — Price Floor Enforcement:** Selling prices cannot be set below unit cost (`current_price >= cost_price`), enforced both during manual management edits and automated recommendation execution.
+- **BR06 — Single Source of Truth for Segments:** Customer classifications and VIP status are derived directly from the `customer_segments` RFM scoring table, eliminating redundant or conflicting business rules.
+- **BR07 — Defensive Growth Calculation:** Trend and growth percentage calculations verify that baseline figures strictly exceed zero (`previous > 0`), returning `null` (displayed as `N/A`) when historical data is insufficient to prevent zero-division and `NaN` errors.
 
 ---
 
-## Ảnh chụp màn hình
+## How SRMS Differs from Traditional BI Tools
+
+Standard Business Intelligence platforms (e.g., Power BI, Tableau, Metabase) excel at aggregating historical data and rendering visualizations, but they remain **passive reporting layers**:
+1. **Passive vs. Proactive:** BI tools require analysts to manually spot anomalies. SRMS actively evaluates operational rules and pushes prioritized, contextual recommendations directly to decision-makers.
+2. **Disconnected vs. Closed-Loop:** When an issue is identified in a typical BI tool, the manager must navigate to a separate ERP or eCommerce backoffice to take action. Because SRMS manages the transactional database, a recommendation (such as liquidating dead stock or adjusting a price) can be executed with a single click and tracked over time.
+
+---
+
+## Screenshots
 
 ![Dashboard Overview](docs/images/dashboard.png)
 
 ![Product Analytics](docs/images/product_analytics.png)
 
 ![AI Recommendations](docs/images/ai_recommendations.png)
+
 ---
 
-## Tác giả
+## Author
 
-**Nguyễn Như Trung**
-Dự án được phát triển như đồ án học phần Lập trình Web, đồng thời sử dụng làm portfolio project cho các vị trí Business Analyst / BI Analyst / Product Analyst.
+**Nguyen Nhu Trung**  
+*Developed as a comprehensive Web Engineering Capstone Project and professional portfolio demonstrating full-stack engineering, business domain modeling, database design, and business intelligence analysis.*
