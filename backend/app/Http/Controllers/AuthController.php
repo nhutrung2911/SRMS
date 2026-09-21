@@ -15,7 +15,9 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
             $user = Auth::user();
             
             // Create Bearer token for easy Postman testing
@@ -45,8 +47,10 @@ class AuthController extends Controller
 
         // Xóa session (dành cho SPA / web)
         Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
         
         return response()->json(['message' => 'Logged out successfully']);
     }
