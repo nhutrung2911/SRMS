@@ -28,12 +28,16 @@ class DatabaseSeeder extends Seeder
         $roleAdmin = DB::table('roles')->insertGetId(['name' => 'admin', 'created_at' => now(), 'updated_at' => now()]);
         $roleManager = DB::table('roles')->insertGetId(['name' => 'manager', 'created_at' => now(), 'updated_at' => now()]);
         $roleStaff = DB::table('roles')->insertGetId(['name' => 'staff', 'created_at' => now(), 'updated_at' => now()]);
+        $roleDirector = DB::table('roles')->insertGetId(['name' => 'director', 'created_at' => now(), 'updated_at' => now()]);
+        $roleCustomerService = DB::table('roles')->insertGetId(['name' => 'customer_service', 'created_at' => now(), 'updated_at' => now()]);
 
         DB::table('users')->insert([
             ['role_id' => $roleAdmin, 'name' => 'Admin User', 'email' => 'admin@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
             ['role_id' => $roleManager, 'name' => 'Manager User', 'email' => 'manager@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
             ['role_id' => $roleStaff, 'name' => 'Staff 1', 'email' => 'staff1@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
             ['role_id' => $roleStaff, 'name' => 'Staff 2', 'email' => 'staff2@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
+            ['role_id' => $roleDirector, 'name' => 'Director User', 'email' => 'director@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
+            ['role_id' => $roleCustomerService, 'name' => 'Customer Service User', 'email' => 'cs@srms.com', 'password' => Hash::make('password'), 'status' => 'Active', 'created_at' => now(), 'updated_at' => now()],
         ]);
         $staffIds = [3, 4];
 
