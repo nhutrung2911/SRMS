@@ -4,24 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class ProductController extends Controller
 {
     /**
-     * Check if user is Admin
-     */
-    private function isAdmin(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && strtolower($role->name) === 'admin';
-    }
-
-    /**
      * Get a paginated list of products with their category and brand.
      */
     public function index(Request $request)
     {
+        PermissionService::authorize($request->user(), 'products.view');
+
         $products = DB::table('products')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
@@ -40,8 +34,9 @@ class ProductController extends Controller
     /**
      * Display a specific product with its images.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        PermissionService::authorize($request->user(), 'products.view');
         $product = DB::table('products')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
@@ -70,9 +65,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$this->isAdmin($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin can create products.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'products.manage', 'Forbidden. Only Admin can create products.');
 
         $validated = $request->validate([
             'category_id' => 'required|integer',
@@ -126,9 +119,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (!$this->isAdmin($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin can update products.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'products.manage', 'Forbidden. Only Admin can update products.');
 
         $product = DB::table('products')->where('id', $id)->first();
         if (!$product) return response()->json(['message' => 'Not found'], 404);
@@ -195,9 +186,7 @@ class ProductController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        if (!$this->isAdmin($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin can delete products.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'products.manage', 'Forbidden. Only Admin can delete products.');
         
         $product = DB::table('products')->where('id', $id)->first();
         if (!$product) {
@@ -226,18 +215,21 @@ class ProductController extends Controller
     }
 
     // Reference Data APIs
-    public function getCategories()
+    public function getCategories(Request $request)
     {
+        PermissionService::authorize($request->user(), 'products.view');
         return response()->json(DB::table('categories')->select('id', 'name')->orderBy('name')->get());
     }
 
-    public function getBrands()
+    public function getBrands(Request $request)
     {
+        PermissionService::authorize($request->user(), 'products.view');
         return response()->json(DB::table('brands')->select('id', 'name')->orderBy('name')->get());
     }
 
-    public function getSuppliers()
+    public function getSuppliers(Request $request)
     {
+        PermissionService::authorize($request->user(), 'products.view');
         return response()->json(DB::table('suppliers')->select('id', 'name')->orderBy('name')->get());
     }
 }

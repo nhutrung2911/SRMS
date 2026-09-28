@@ -4,21 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class InventoryController extends Controller
 {
-    private function isAdminOrManager(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array($role->name, ['admin', 'manager']);
-    }
-
     /**
      * Lấy 4 KPIs cho trang Inventory
      */
-    public function getKpis()
+    public function getKpis(Request $request)
     {
+        PermissionService::authorize($request->user(), 'inventory.view');
+
         $products = DB::table('products')->select('id', 'stock_quantity', 'reorder_level')->get();
 
         $velocities = DB::table('order_details')
@@ -85,8 +82,10 @@ class InventoryController extends Controller
     /**
      * Lấy danh sách sản phẩm và mức độ rủi ro tồn kho
      */
-    public function index()
+    public function index(Request $request)
     {
+        PermissionService::authorize($request->user(), 'inventory.view');
+
         $products = DB::table('products')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin('recommendations', function($join) {
@@ -167,9 +166,7 @@ class InventoryController extends Controller
      */
     public function adjust(Request $request, $id)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can adjust stock.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'inventory.adjust', 'Forbidden. Only Admin or Manager can adjust stock.');
 
         $validated = $request->validate([
             'type' => 'required|in:IN,OUT,ADJUSTMENT',

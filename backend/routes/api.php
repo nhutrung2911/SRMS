@@ -73,5 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Forecast & AI Insights
     Route::get('/forecast', [ForecastController::class, 'getForecast']);
     Route::get('/insights', [ForecastController::class, 'getInsights']);
+
+    // Activity Logs (Admin & Director only)
+    Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
     
 });

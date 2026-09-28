@@ -4,24 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
-    /**
-     * Check if user is Admin (1) or Manager (2)
-     */
-    private function isAdminOrManager(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array($role->name, ['admin', 'manager']);
-    }
-
     public function getProductAnalytics(Request $request)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can view analytics.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'product_analytics.view', 'Forbidden. Only Admin, Director or Manager can view analytics.');
 
         // 1. Revenue by Category
         $thirtyDaysAgo = Carbon::now()->subDays(30);
@@ -127,9 +117,7 @@ class AnalyticsController extends Controller
 
     public function getCustomerAnalytics(Request $request)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can view analytics.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'customer_analytics.view', 'Forbidden. Only authorized roles can view customer analytics.');
 
         $thirtyDaysAgo = Carbon::now()->subDays(30);
 
@@ -278,9 +266,7 @@ class AnalyticsController extends Controller
      */
     public function getRevenueAnalytics(Request $request)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can view analytics.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'revenue_analytics.view', 'Forbidden. Only Admin or Manager can view analytics.');
 
         $range = $request->query('range', '30_days');
         $days = 30;

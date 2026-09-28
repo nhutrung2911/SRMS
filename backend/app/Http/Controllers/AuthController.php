@@ -23,12 +23,16 @@ class AuthController extends Controller
             // Create Bearer token for easy Postman testing
             $token = $user->createToken('postman-test-token')->plainTextToken;
 
+            $role = \Illuminate\Support\Facades\DB::table('roles')->where('id', $user->role_id)->first();
+            $roleName = $role ? strtolower($role->name) : 'staff';
+
             return response()->json([
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'role_id' => $user->role_id,
+                    'role' => $roleName,
                     'status' => $user->status
                 ],
                 'token' => $token // Dùng token này để test Postman

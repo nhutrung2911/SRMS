@@ -4,24 +4,19 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 
 class PromotionController extends Controller
 {
     /**
-     * Check if user is Admin (1) or Manager (2)
-     */
-    private function isAdminOrManager(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array(strtolower($role->name), ['admin', 'manager']);
-    }
-
-    /**
      * Summary KPIs for top cards
      */
     public function getKpis(Request $request)
     {
+        PermissionService::authorize($request->user(), 'promotions.view');
+
         $now = Carbon::now();
 
         // 1. Active Promotions count (Active and within date range)
@@ -68,6 +63,8 @@ class PromotionController extends Controller
      */
     public function index(Request $request)
     {
+        PermissionService::authorize($request->user(), 'promotions.view');
+
         $search = $request->query('search');
         $status = $request->query('status'); // all, active, scheduled, ended, draft
         $now = Carbon::now();
@@ -174,8 +171,10 @@ class PromotionController extends Controller
     /**
      * Show detail of a single promotion with applied products and Before/During/After analysis
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        PermissionService::authorize($request->user(), 'promotions.view');
+
         $now = Carbon::now();
         $promo = DB::table('promotions')->where('id', $id)->first();
         if (!$promo) {
@@ -324,9 +323,7 @@ class PromotionController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can create promotions.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'promotions.manage', 'Forbidden. Only Admin or Manager can create promotions.');
 
         $validated = $request->validate([
             'name' => 'required|string|max:150',
@@ -350,6 +347,7 @@ class PromotionController extends Controller
                 'end_date' => $validated['end_date'],
                 'min_order_value' => $validated['min_order_value'] ?? 0,
                 'status' => $validated['status'],
+                'created_by' => $request->user()->id,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -362,6 +360,15 @@ class PromotionController extends Controller
                 ];
             }
             DB::table('promotion_products')->insert($productInserts);
+
+            ActivityLogger::log(
+                userId: $request->user()->id,
+                action: 'promotion.created',
+                subjectType: 'promotion',
+                subjectId: (int) $promoId,
+                description: "Created Promotion: {$validated['name']}",
+                metadata: ['discount_type' => $validated['discount_type'], 'discount_value' => (float)$validated['discount_value']]
+            );
 
             DB::commit();
             return response()->json(['message' => 'Promotion created successfully', 'id' => $promoId], 201);
@@ -376,9 +383,7 @@ class PromotionController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can update promotions.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'promotions.manage', 'Forbidden. Only Admin or Manager can update promotions.');
 
         $promo = DB::table('promotions')->where('id', $id)->first();
         if (!$promo) {
@@ -405,6 +410,7 @@ class PromotionController extends Controller
                     $updateData[$field] = $validated[$field];
                 }
             }
+            $updateData['updated_by'] = $request->user()->id;
             $updateData['updated_at'] = now();
 
             DB::table('promotions')->where('id', $id)->update($updateData);
@@ -423,6 +429,15 @@ class PromotionController extends Controller
                 }
             }
 
+            ActivityLogger::log(
+                userId: $request->user()->id,
+                action: 'promotion.updated',
+                subjectType: 'promotion',
+                subjectId: (int) $id,
+                description: "Updated Promotion #{$id}: {$promo->name}",
+                metadata: ['changes' => array_keys($updateData)]
+            );
+
             DB::commit();
             return response()->json(['message' => 'Promotion updated successfully']);
         } catch (\Exception $e) {
@@ -437,9 +452,7 @@ class PromotionController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can delete promotions.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'promotions.manage', 'Forbidden. Only Admin or Manager can delete promotions.');
 
         $promo = DB::table('promotions')->where('id', $id)->first();
         if (!$promo) {
@@ -458,6 +471,16 @@ class PromotionController extends Controller
         try {
             DB::table('promotion_products')->where('promotion_id', $id)->delete();
             DB::table('promotions')->where('id', $id)->delete();
+
+            ActivityLogger::log(
+                userId: $request->user()->id,
+                action: 'promotion.deleted',
+                subjectType: 'promotion',
+                subjectId: (int) $id,
+                description: "Deleted Promotion #{$id}: {$promo->name}",
+                metadata: ['name' => $promo->name]
+            );
+
             DB::commit();
 
             return response()->json(['message' => 'Promotion deleted successfully']);

@@ -4,24 +4,19 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 
 class OrderController extends Controller
 {
     /**
-     * Check if user is Admin (1) or Manager (2)
-     */
-    private function isAdminOrManager(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array(strtolower($role->name), ['admin', 'manager']);
-    }
-
-    /**
      * Get a paginated list of orders with customer name.
      */
     public function index(Request $request)
     {
+        PermissionService::authorize($request->user(), 'orders.view');
+
         $orders = DB::table('orders')
             ->join('customers', 'orders.customer_id', '=', 'customers.id')
             ->select('orders.*', 'customers.name as customer_name')
@@ -34,8 +29,9 @@ class OrderController extends Controller
     /**
      * Display order details including items.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        PermissionService::authorize($request->user(), 'orders.view');
         $order = DB::table('orders')
             ->join('customers', 'orders.customer_id', '=', 'customers.id')
             ->select('orders.*', 'customers.name as customer_name', 'customers.email', 'customers.phone')
@@ -68,6 +64,8 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        PermissionService::authorize($request->user(), 'orders.create');
+
         $validated = $request->validate([
             'customer_id' => 'required|integer',
             'items' => 'required|array|min:1',
@@ -175,8 +173,10 @@ class OrderController extends Controller
             return response()->json(['message' => 'Order is already in this status']);
         }
 
-        if (in_array($newStatus, ['Cancelled', 'Refunded']) && !$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can cancel or refund orders.'], 403);
+        if (in_array($newStatus, ['Cancelled', 'Refunded'])) {
+            PermissionService::authorize($request->user(), 'orders.cancel_refund', 'Forbidden. Only Admin or Manager can cancel or refund orders.');
+        } else {
+            PermissionService::authorize($request->user(), 'orders.update_progress', 'Forbidden. You do not have permission to update order status.');
         }
 
         DB::beginTransaction();
@@ -283,6 +283,27 @@ class OrderController extends Controller
                 'updated_at' => now()
             ]);
 
+            // Log activity for Cancelled or Refunded
+            if ($newStatus === 'Cancelled') {
+                ActivityLogger::log(
+                    userId: $request->user()->id,
+                    action: 'order.cancelled',
+                    subjectType: 'order',
+                    subjectId: (int) $id,
+                    description: "Cancelled Order #{$id} (" . number_format($order->final_amount, 0, ',', '.') . "₫)",
+                    metadata: ['old_status' => $oldStatus, 'final_amount' => (float) $order->final_amount]
+                );
+            } elseif ($newStatus === 'Refunded') {
+                ActivityLogger::log(
+                    userId: $request->user()->id,
+                    action: 'order.refunded',
+                    subjectType: 'order',
+                    subjectId: (int) $id,
+                    description: "Refunded Order #{$id} (" . number_format($order->final_amount, 0, ',', '.') . "₫)",
+                    metadata: ['old_status' => $oldStatus, 'final_amount' => (float) $order->final_amount]
+                );
+            }
+
             DB::commit();
             return response()->json(['message' => "Order status updated to {$newStatus}"]);
         } catch (\Exception $e) {
@@ -291,13 +312,15 @@ class OrderController extends Controller
         }
     }
 
-    public function getCustomers()
+    public function getCustomers(Request $request)
     {
+        PermissionService::authorize($request->user(), 'orders.view');
         return response()->json(DB::table('customers')->select('id', 'name', 'phone')->get());
     }
 
-    public function getPromotions()
+    public function getPromotions(Request $request)
     {
+        PermissionService::authorize($request->user(), 'orders.view');
         return response()->json(
             DB::table('promotions')
                 ->where('status', 'Active')

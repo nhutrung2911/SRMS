@@ -4,21 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 
 class RecommendationController extends Controller
 {
-    private function isAdminOrManager(Request $request)
-    {
-        $role = DB::table('roles')->where('id', $request->user()->role_id)->first();
-        return $role && in_array($role->name, ['admin', 'manager']);
-    }
-
     public function index(Request $request)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden. Only Admin or Manager can view recommendations.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'recommendations.view');
 
         $recs = DB::table('recommendations')->orderBy('id', 'desc')->get();
         
@@ -145,9 +139,7 @@ class RecommendationController extends Controller
 
     public function apply(Request $request, $id)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'recommendations.action', 'Forbidden. Only Admin or Manager can apply recommendations.');
 
         $rec = DB::table('recommendations')->where('id', $id)->first();
         if (!$rec) {
@@ -158,58 +150,73 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Recommendation already processed.'], 400);
         }
 
-        // Execution Logic for Pricing
-        if ($rec->type === 'Pricing' && $rec->target_type === 'product') {
-            $product = DB::table('products')->where('id', $rec->target_id)->first();
-            if (!$product) {
-                return response()->json(['message' => 'Target product not found.'], 404);
-            }
-            
-            // Parse percentage from "Increase base price by 5%" or "Apply 20% clearance discount"
-            preg_match('/(\d+)%/', $rec->recommended_action, $matches);
-            if (empty($matches[1])) {
-                return response()->json(['message' => 'Could not parse a percentage from this recommendation.'], 422);
-            }
-            
-            $percent = (float) $matches[1];
-            $isDecrease = stripos($rec->recommended_action, 'decrease') !== false || stripos($rec->recommended_action, 'reduce') !== false || stripos($rec->recommended_action, 'discount') !== false;
-            
-            $factor = $isDecrease ? (1 - $percent/100) : (1 + $percent/100);
-            $newPrice = round($product->current_price * $factor);
-            
-            if ($newPrice < $product->cost_price) {
-                return response()->json(['message' => "Calculated price ($newPrice) is below cost price ({$product->cost_price})."], 422);
+        DB::beginTransaction();
+        try {
+            // Execution Logic for Pricing
+            if ($rec->type === 'Pricing' && $rec->target_type === 'product') {
+                $product = DB::table('products')->where('id', $rec->target_id)->first();
+                if (!$product) {
+                    return response()->json(['message' => 'Target product not found.'], 404);
+                }
+                
+                // Parse percentage from "Increase base price by 5%" or "Apply 20% clearance discount"
+                preg_match('/(\d+)%/', $rec->recommended_action, $matches);
+                if (empty($matches[1])) {
+                    return response()->json(['message' => 'Could not parse a percentage from this recommendation.'], 422);
+                }
+                
+                $percent = (float) $matches[1];
+                $isDecrease = stripos($rec->recommended_action, 'decrease') !== false || stripos($rec->recommended_action, 'reduce') !== false || stripos($rec->recommended_action, 'discount') !== false;
+                
+                $factor = $isDecrease ? (1 - $percent/100) : (1 + $percent/100);
+                $newPrice = round($product->current_price * $factor);
+                
+                if ($newPrice < $product->cost_price) {
+                    return response()->json(['message' => "Calculated price ($newPrice) is below cost price ({$product->cost_price})."], 422);
+                }
+
+                DB::table('products')->where('id', $product->id)->update([
+                    'current_price' => $newPrice,
+                    'updated_at' => Carbon::now()
+                ]);
+
+                DB::table('price_history')->insert([
+                    'product_id' => $product->id,
+                    'old_price' => $product->current_price,
+                    'new_price' => $newPrice,
+                    'changed_by' => $request->user()->id,
+                    'reason' => "Applied Recommendation #{$rec->id}",
+                    'changed_at' => Carbon::now()
+                ]);
             }
 
-            DB::table('products')->where('id', $product->id)->update([
-                'current_price' => $newPrice,
-                'updated_at' => Carbon::now()
+            // Mark as applied with resolved_by
+            DB::table('recommendations')->where('id', $id)->update([
+                'status' => 'Applied',
+                'resolved_at' => Carbon::now(),
+                'resolved_by' => $request->user()->id
             ]);
 
-            DB::table('price_history')->insert([
-                'product_id' => $product->id,
-                'old_price' => $product->current_price,
-                'new_price' => $newPrice,
-                'changed_by' => $request->user()->id,
-                'reason' => "Applied Recommendation #{$rec->id}",
-                'changed_at' => Carbon::now()
-            ]);
+            ActivityLogger::log(
+                userId: $request->user()->id,
+                action: 'recommendation.applied',
+                subjectType: 'recommendation',
+                subjectId: (int) $id,
+                description: "Applied AI Recommendation #{$id}: {$rec->recommended_action}",
+                metadata: ['type' => $rec->type, 'target_id' => $rec->target_id]
+            );
+
+            DB::commit();
+            return response()->json(['message' => 'Recommendation applied successfully.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error applying recommendation: ' . $e->getMessage()], 500);
         }
-
-        // Mark as applied
-        DB::table('recommendations')->where('id', $id)->update([
-            'status' => 'Applied',
-            'resolved_at' => Carbon::now()
-        ]);
-
-        return response()->json(['message' => 'Recommendation applied successfully.']);
     }
 
     public function dismiss(Request $request, $id)
     {
-        if (!$this->isAdminOrManager($request)) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
+        PermissionService::authorize($request->user(), 'recommendations.action', 'Forbidden. Only Admin or Manager can dismiss recommendations.');
 
         $rec = DB::table('recommendations')->where('id', $id)->first();
         if (!$rec) {
@@ -220,11 +227,28 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Recommendation already processed.'], 400);
         }
 
-        DB::table('recommendations')->where('id', $id)->update([
-            'status' => 'Rejected',
-            'resolved_at' => Carbon::now()
-        ]);
+        DB::beginTransaction();
+        try {
+            DB::table('recommendations')->where('id', $id)->update([
+                'status' => 'Rejected',
+                'resolved_at' => Carbon::now(),
+                'resolved_by' => $request->user()->id
+            ]);
 
-        return response()->json(['message' => 'Recommendation dismissed.']);
+            ActivityLogger::log(
+                userId: $request->user()->id,
+                action: 'recommendation.dismissed',
+                subjectType: 'recommendation',
+                subjectId: (int) $id,
+                description: "Dismissed AI Recommendation #{$id}: {$rec->recommended_action}",
+                metadata: ['type' => $rec->type, 'target_id' => $rec->target_id]
+            );
+
+            DB::commit();
+            return response()->json(['message' => 'Recommendation dismissed.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error dismissing recommendation: ' . $e->getMessage()], 500);
+        }
     }
 }

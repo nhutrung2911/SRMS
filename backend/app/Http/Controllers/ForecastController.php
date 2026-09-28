@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class ForecastController extends Controller
@@ -13,6 +14,7 @@ class ForecastController extends Controller
      */
     public function getForecast(Request $request)
     {
+        PermissionService::authorize($request->user(), 'forecast.view');
         $period = $request->query('period', 'next30'); // next7, next30, nextMonth
         $now = Carbon::now();
 
@@ -128,6 +130,7 @@ class ForecastController extends Controller
      */
     public function getInsights(Request $request)
     {
+        PermissionService::authorize($request->user(), 'insights.view');
         $thirtyDaysAgo = Carbon::now()->subDays(30);
         $insights = [];
 

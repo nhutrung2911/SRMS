@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -14,6 +15,8 @@ class DashboardController extends Controller
      */
     public function getKpis(Request $request)
     {
+        PermissionService::authorize($request->user(), 'dashboard.view');
+
         $type = $request->query('type', 'month');
 
         $query = DB::table('revenue_daily');
@@ -95,6 +98,8 @@ class DashboardController extends Controller
 
     public function getChartData(Request $request)
     {
+        PermissionService::authorize($request->user(), 'dashboard.view');
+
         $type = $request->query('type', '30_days');
         
         $days = 30;

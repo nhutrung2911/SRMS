@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Services\PermissionService;
 use Carbon\Carbon;
 
 class CustomerController extends Controller
@@ -13,8 +14,9 @@ class CustomerController extends Controller
      * Get detailed information for a specific customer.
      * Reuses 100% of data from customers and customer_segments (Single Source of Truth).
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        PermissionService::authorize($request->user(), 'customer.view');
         $customer = DB::table('customers')
             ->leftJoin('customer_segments', 'customers.id', '=', 'customer_segments.customer_id')
             ->where('customers.id', $id)
@@ -138,6 +140,8 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
+        PermissionService::authorize($request->user(), 'customer.create', 'Forbidden. You do not have permission to create customers.');
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:150',
             'email' => 'nullable|email|max:150|unique:customers,email',
@@ -190,6 +194,8 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        PermissionService::authorize($request->user(), 'customer.update', 'Forbidden. You do not have permission to update customer details.');
+
         $customer = DB::table('customers')->where('id', $id)->first();
         if (!$customer) {
             return response()->json(['message' => 'Customer not found.'], 404);
