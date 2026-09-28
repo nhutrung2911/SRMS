@@ -22,16 +22,33 @@ import { ProductsPage } from '@/pages/ProductsPage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ActivityLogsPage } from '@/pages/ActivityLogsPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { getCurrentUser, getDefaultPageForRole, isPageAccessible } from '@/lib/auth';
 
 function App() {
-  const [page, setPage] = useState<PageId>(localStorage.getItem('token') ? 'dashboard' : 'login');
+  const [page, setPage] = useState<PageId>(() => {
+    if (!localStorage.getItem('token')) return 'login';
+    const u = getCurrentUser();
+    return getDefaultPageForRole(u?.role_id);
+  });
   const [params, setParams] = useState<Record<string, string>>({});
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const navigate = useCallback((newPage: PageId, newParams: Record<string, string> = {}) => {
+    if (newPage === 'login') {
+      setPage('login');
+      setParams({});
+      return;
+    }
+    const u = getCurrentUser();
+    if (u && !isPageAccessible(u.role_id, newPage)) {
+      setPage(getDefaultPageForRole(u.role_id));
+      setParams({});
+      return;
+    }
     setPage(newPage);
     setParams(newParams);
     window.scrollTo({ top: 0 });
@@ -53,7 +70,10 @@ function App() {
   if (page === 'login') {
     return (
       <>
-        <LoginPage onSuccess={() => navigate('dashboard')} />
+        <LoginPage onSuccess={() => {
+          const u = getCurrentUser();
+          navigate(getDefaultPageForRole(u?.role_id));
+        }} />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </>
     );
@@ -99,6 +119,8 @@ function App() {
         return [{ label: 'System' }, { label: 'Users' }];
       case 'settings':
         return [{ label: 'System' }, { label: 'Settings' }];
+      case 'activity-logs':
+        return [{ label: 'System' }, { label: 'Activity Log' }];
       default:
         return [{ label: 'SRMS' }];
     }
@@ -123,6 +145,7 @@ function App() {
       case 'ai-insight-detail': return <AIInsightDetailPage navigate={navigate} addToast={addToast} />;
       case 'products': return <ProductsPage navigate={navigate} addToast={addToast} />;
       case 'product-edit': return <ProductEditPage navigate={navigate} productId={params.productId} />;
+      case 'activity-logs': return <ActivityLogsPage navigate={navigate} />;
       case 'users': return <UsersPage navigate={navigate} addToast={addToast} />;
       case 'settings': return <SettingsPage />;
       default: return <DashboardPage navigate={navigate} addToast={addToast} />;

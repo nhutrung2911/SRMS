@@ -138,8 +138,8 @@ export function RecommendationCard({ rec, onDismiss, onApply }: { rec: any; onDi
         <div className="flex items-center gap-2">
           {rec.status === 'pending' && (
             <>
-              <Button variant="secondary" size="sm" onClick={onDismiss}>Dismiss</Button>
-              <Button variant="primary" size="sm" onClick={onApply}>Apply</Button>
+              {onDismiss && <Button variant="secondary" size="sm" onClick={onDismiss}>Dismiss</Button>}
+              {onApply && <Button variant="primary" size="sm" onClick={onApply}>Apply</Button>}
             </>
           )}
         </div>

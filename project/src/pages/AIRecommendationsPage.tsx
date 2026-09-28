@@ -8,8 +8,11 @@ import { Tabs } from '@/components/ui/Tabs';
 import { RecommendationCard } from '@/components/InsightCard';
 import { Sparkles, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import api from '@/services/api';
+import { getCurrentUser } from '@/lib/auth';
 
 export function AIRecommendationsPage({ addToast }: PageProps) {
+  const user = getCurrentUser();
+  const canManage = user?.role_id === 1 || user?.role_id === 2;
   const [tab, setTab] = useState('all');
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,8 +137,8 @@ export function AIRecommendationsPage({ addToast }: PageProps) {
             <RecommendationCard
               key={rec.id}
               rec={rec}
-              onDismiss={() => setDismissRec(rec)}
-              onApply={() => setApplyRec(rec)}
+              onDismiss={canManage ? () => setDismissRec(rec) : undefined}
+              onApply={canManage ? () => setApplyRec(rec) : undefined}
             />
           ))}
         </div>

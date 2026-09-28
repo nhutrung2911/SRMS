@@ -4,12 +4,14 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { LineChart } from '@/components/charts/LineChart';
 import { RecommendationCard } from '@/components/InsightCard';
 import { formatCurrency } from '@/data';
 import type { TrendPoint, Recommendation } from '@/types';
-import { ArrowLeft, ShoppingBag, DollarSign, TrendingUp, Clock, MapPin, Calendar, Phone, Mail, Loader2, Award, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, DollarSign, TrendingUp, Clock, MapPin, Calendar, Phone, Mail, Loader2, Award, ExternalLink, Edit } from 'lucide-react';
 import api from '@/services/api';
+import { getCurrentUser } from '@/lib/auth';
 
 const segmentVariant: Record<string, 'brand' | 'success' | 'info' | 'neutral' | 'warning' | 'danger'> = {
   champions: 'brand',
@@ -42,12 +44,23 @@ const segmentDesc: Record<string, string> = {
   lost: 'Customers who have not purchased in 90+ days. Consider win-back campaigns.',
 };
 
-export function CustomerDetailPage({ navigate, customerId }: PageProps & { customerId: string }) {
+export function CustomerDetailPage({ navigate, customerId, addToast }: PageProps & { customerId: string }) {
+  const user = getCurrentUser();
+  const canEditCustomer = user?.role_id === 1 || user?.role_id === 3 || user?.role_id === 5;
+
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
+  // Edit Contact Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formAddress, setFormAddress] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -117,6 +130,36 @@ export function CustomerDetailPage({ navigate, customerId }: PageProps & { custo
     );
   }
 
+  const handleUpdateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      addToast?.({ type: 'warning', title: 'Validation error', message: 'Customer name is required.' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.put(`/customers/${customerId}`, {
+        name: formName.trim(),
+        email: formEmail.trim() || null,
+        phone: formPhone.trim() || null,
+        address: formAddress.trim() || null,
+      });
+      setCustomer((prev: any) => ({
+        ...prev,
+        name: formName.trim(),
+        email: formEmail.trim() || 'N/A',
+        phone: formPhone.trim() || 'N/A',
+        address: formAddress.trim() || 'N/A',
+      }));
+      addToast?.({ type: 'success', title: 'Success', message: 'Customer contact info updated successfully.' });
+      setEditModalOpen(false);
+    } catch (err: any) {
+      addToast?.({ type: 'error', title: 'Update failed', message: err.response?.data?.message || 'Could not update customer.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const kpis = [
     { icon: ShoppingBag, label: 'Total Orders', value: customer.total_orders.toString() },
     { icon: DollarSign, label: 'Total Spent', value: formatCurrency(customer.total_spent) },
@@ -144,9 +187,27 @@ export function CustomerDetailPage({ navigate, customerId }: PageProps & { custo
         ]}
         onNavigate={navigate}
         actions={
-          <Button variant="secondary" size="md" icon={<ArrowLeft className="w-4 h-4" />} onClick={() => navigate('customers-analytics')}>
-            Back
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="md" icon={<ArrowLeft className="w-4 h-4" />} onClick={() => navigate('customers-analytics')}>
+              Back
+            </Button>
+            {canEditCustomer && (
+              <Button
+                variant="primary"
+                size="md"
+                icon={<Edit className="w-4 h-4" />}
+                onClick={() => {
+                  setFormName(customer.name || '');
+                  setFormEmail(customer.email === 'N/A' ? '' : customer.email || '');
+                  setFormPhone(customer.phone === 'N/A' ? '' : customer.phone || '');
+                  setFormAddress(customer.address === 'N/A' ? '' : customer.address || '');
+                  setEditModalOpen(true);
+                }}
+              >
+                Edit Contact
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -352,6 +413,69 @@ export function CustomerDetailPage({ navigate, customerId }: PageProps & { custo
           </div>
         </div>
       )}
+
+      {/* Edit Customer Contact Modal */}
+      <Modal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Edit Customer Contact Info"
+      >
+        <form onSubmit={handleUpdateCustomer} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1.5">
+              Customer Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1.5">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1.5">
+              Phone Number
+            </label>
+            <input
+              type="text"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-1.5">
+              Address
+            </label>
+            <textarea
+              rows={3}
+              value={formAddress}
+              onChange={(e) => setFormAddress(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-ink-100">
+            <Button variant="secondary" type="button" onClick={() => setEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

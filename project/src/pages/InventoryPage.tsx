@@ -10,12 +10,15 @@ import { Modal } from '@/components/ui/Modal';
 import type { RiskLevel } from '@/types';
 import { Search, ChevronDown, Package, Edit2 } from 'lucide-react';
 import api from '@/services/api';
+import { getCurrentUser } from '@/lib/auth';
 
 const riskVariant: Record<RiskLevel, 'critical' | 'high' | 'medium' | 'low'> = {
   critical: 'critical', high: 'high', medium: 'medium', low: 'low',
 };
 
 export function InventoryPage({ navigate, addToast }: PageProps) {
+  const user = getCurrentUser();
+  const canAdjust = user?.role_id === 1 || user?.role_id === 2;
   const [search, setSearch] = useState('');
   const [risk, setRisk] = useState('all');
   
@@ -137,16 +140,18 @@ export function InventoryPage({ navigate, addToast }: PageProps) {
             { key: 'recommendation', label: 'Recommendation', render: (r) => (
               <span className={r.risk === 'critical' || r.risk === 'high' ? 'text-danger-600 text-sm font-medium' : r.risk === 'medium' ? 'text-warning-600 text-sm' : 'text-ink-500 text-sm'}>{r.recommendation}</span>
             )},
-            { key: 'actions', label: '', align: 'right', render: (r) => (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Edit2 className="w-3.5 h-3.5" />}
-                onClick={(e) => { e.stopPropagation(); setAdjustItem(r); setAdjustQty(''); setAdjustNote(''); }}
-              >
-                Adjust
-              </Button>
-            )}
+            ...(canAdjust ? [{
+              key: 'actions', label: '', align: 'right' as const, render: (r: any) => (
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={<Edit2 className="w-3.5 h-3.5" />}
+                  onClick={(e) => { e.stopPropagation(); setAdjustItem(r); setAdjustQty(''); setAdjustNote(''); }}
+                >
+                  Adjust
+                </Button>
+              )
+            }] : [])
           ]}
           data={sorted}
           rowKey={(r) => r.productId}

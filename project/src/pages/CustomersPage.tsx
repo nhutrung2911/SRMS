@@ -12,6 +12,7 @@ import { formatCurrency } from '@/data';
 import type { CustomerRow, CustomerSegment, CustomerStatus, Kpi } from '@/types';
 import { Search, ChevronDown, ChevronLeft, ChevronRight, UserPlus, Loader2 } from 'lucide-react';
 import api from '@/services/api';
+import { getCurrentUser } from '@/lib/auth';
 
 const segmentVariant: Record<string, any> = {
   champion: 'brand',
@@ -30,6 +31,8 @@ const statusVariant: Record<string, any> = {
 };
 
 export function CustomersPage({ navigate, addToast }: PageProps) {
+  const user = getCurrentUser();
+  const canCreateCustomer = user?.role_id === 1 || user?.role_id === 3;
   const [search, setSearch] = useState('');
   const [segment, setSegment] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -161,9 +164,11 @@ export function CustomersPage({ navigate, addToast }: PageProps) {
         subtitle="Understand customer behavior, segments, and lifetime value."
         breadcrumbs={[{ label: 'Commerce' }, { label: 'Customer Analytics' }]}
         actions={
-          <Button variant="primary" size="md" icon={<UserPlus className="w-4 h-4" />} onClick={() => setAddModalOpen(true)}>
-            Add Customer
-          </Button>
+          canCreateCustomer ? (
+            <Button variant="primary" size="md" icon={<UserPlus className="w-4 h-4" />} onClick={() => setAddModalOpen(true)}>
+              Add Customer
+            </Button>
+          ) : undefined
         }
       />
 

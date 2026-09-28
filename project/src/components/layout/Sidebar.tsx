@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  History,
 } from 'lucide-react';
+import { getCurrentUser, isPageAccessible } from '@/lib/auth';
 
 interface NavItem {
   id: PageId;
@@ -47,6 +49,7 @@ const navGroups: NavGroup[] = [
     title: 'Commerce',
     items: [
       { id: 'products-analytics', label: 'Product Analytics', icon: Package },
+      { id: 'products', label: 'Products', icon: Tags },
       { id: 'orders', label: 'Orders', icon: ShoppingCart },
       { id: 'customers-analytics', label: 'Customers', icon: Users },
     ],
@@ -68,6 +71,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'System',
     items: [
+      { id: 'activity-logs', label: 'Activity Log', icon: History },
       { id: 'users', label: 'Users', icon: UserCog },
       { id: 'settings', label: 'Settings', icon: Settings },
     ],
@@ -84,6 +88,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
+  const user = getCurrentUser();
+  const roleId = user?.role_id ?? 1;
+
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => isPageAccessible(roleId, item.id)),
+    }))
+    .filter((group) => group.items.length > 0);
   return (
     <>
       {/* Mobile overlay */}
@@ -113,7 +126,7 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse, 
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2 space-y-5">
-          {navGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.title}>
               {!collapsed && (
                 <div className="px-3 mb-1.5 text-[10px] font-semibold text-ink-400 uppercase tracking-wider">

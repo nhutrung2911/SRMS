@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Bell, Menu, ChevronDown, HelpCircle, LogOut, User, Settings } from 'lucide-react';
+import { getCurrentUser, getRoleDisplayName } from '@/lib/auth';
 
 interface TopNavProps {
   onOpenMobileSidebar: () => void;
@@ -9,6 +10,10 @@ interface TopNavProps {
 export function TopNav({ onOpenMobileSidebar, breadcrumb }: TopNavProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const currentUser = getCurrentUser();
+  const userName = currentUser?.name || 'Nguyễn Như Trung';
+  const userEmail = currentUser?.email || 'admin@srms.com';
+  const roleName = getRoleDisplayName(currentUser?.role_id, currentUser?.role);
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-ink-200/60 h-16 flex items-center px-4 lg:px-6 gap-3">
@@ -86,17 +91,15 @@ export function TopNav({ onOpenMobileSidebar, breadcrumb }: TopNavProps) {
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
             {(() => {
-              const u = localStorage.getItem('user');
-              const name = u ? JSON.parse(u).name : 'Nguyễn Như Trung';
-              const parts = name.split(' ');
-              return parts.length > 1 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+              const parts = userName.split(' ');
+              return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : userName.substring(0, 2).toUpperCase();
             })()}
           </div>
           <div className="hidden md:block text-left">
             <div className="text-sm font-medium text-ink-900 leading-tight">
-              {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).name : 'Nguyễn Như Trung'}
+              {userName}
             </div>
-            <div className="text-xs text-ink-400 leading-tight">Admin</div>
+            <div className="text-xs text-ink-400 leading-tight">{roleName}</div>
           </div>
           <ChevronDown className="w-4 h-4 text-ink-400 hidden md:block" />
         </button>
@@ -106,10 +109,10 @@ export function TopNav({ onOpenMobileSidebar, breadcrumb }: TopNavProps) {
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-pop border border-ink-200 z-50 overflow-hidden animate-fade-in">
               <div className="px-4 py-3 border-b border-ink-100">
                 <div className="text-sm font-medium text-ink-900">
-                  {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).name : 'Nguyễn Như Trung'}
+                  {userName}
                 </div>
                 <div className="text-xs text-ink-400">
-                  {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).email : 'admin@srms.com'}
+                  {userEmail} ({roleName})
                 </div>
               </div>
               <div className="py-1">

@@ -18,6 +18,7 @@ export type PageId =
   | 'product-edit'
   | 'users'
   | 'settings'
+  | 'activity-logs'
   | 'login';
 
 export type TrendDirection = 'up' | 'down' | 'flat';
@@ -236,10 +237,24 @@ export interface UserRow {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'analyst' | 'viewer';
+  role: 'admin' | 'director' | 'manager' | 'staff' | 'customer_service';
   status: 'active' | 'invited' | 'suspended';
   lastActive: string;
   avatar?: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  user_role: string;
+  action: string;
+  subject_type: string;
+  subject_id: number;
+  description: string;
+  metadata: Record<string, any> | null;
+  created_at: string;
 }
 
 export interface BreadcrumbItem {

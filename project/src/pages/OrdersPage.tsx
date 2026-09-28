@@ -20,7 +20,9 @@ const formatCurrency = (val: number) => {
 
 export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & { initialOrderId?: string }) {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isAdminOrManager = user.role_id === 1 || user.role_id === 2;
+  const canCancelOrRefund = user.role_id === 1 || user.role_id === 2; // Admin, Manager
+  const canCreateOrder = user.role_id === 1 || user.role_id === 3; // Admin, Staff
+  const canUpdateProgress = user.role_id === 1 || user.role_id === 3; // Admin, Staff
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
@@ -184,9 +186,11 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
         subtitle="Track and manage customer orders across all channels."
         breadcrumbs={[{ label: 'Commerce' }, { label: 'Orders' }]}
         actions={
-          <Button variant="primary" onClick={() => { loadReferenceData(); setIsCreating(true); }} icon={<Plus className="w-4 h-4" />}>
-            Create Order
-          </Button>
+          canCreateOrder ? (
+            <Button variant="primary" onClick={() => { loadReferenceData(); setIsCreating(true); }} icon={<Plus className="w-4 h-4" />}>
+              Create Order
+            </Button>
+          ) : undefined
         }
       />
 
@@ -245,16 +249,16 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
           detail && (
             <>
               <Button variant="secondary" onClick={() => setDrawerOrder(null)}>Close</Button>
-              {detail.status === 'Pending' && (
+              {canUpdateProgress && detail.status === 'Pending' && (
                 <Button variant="primary" onClick={() => handleUpdateStatus('Processing')} disabled={updatingStatus}>Process Order</Button>
               )}
-              {detail.status === 'Processing' && (
+              {canUpdateProgress && detail.status === 'Processing' && (
                 <Button variant="success" onClick={() => handleUpdateStatus('Completed')} disabled={updatingStatus}>Mark Completed</Button>
               )}
-              {isAdminOrManager && (detail.status === 'Pending' || detail.status === 'Processing') && (
+              {canCancelOrRefund && (detail.status === 'Pending' || detail.status === 'Processing') && (
                 <Button variant="danger" onClick={() => handleUpdateStatus('Cancelled')} disabled={updatingStatus}>Cancel Order</Button>
               )}
-              {isAdminOrManager && detail.status === 'Completed' && (
+              {canCancelOrRefund && detail.status === 'Completed' && (
                 <Button variant="danger" onClick={() => handleUpdateStatus('Refunded')} disabled={updatingStatus}>Refund Order</Button>
               )}
             </>
