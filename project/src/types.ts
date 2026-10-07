@@ -18,6 +18,7 @@ export type PageId =
   | 'product-edit'
   | 'users'
   | 'settings'
+  | 'profile'
   | 'activity-logs'
   | 'login';
 

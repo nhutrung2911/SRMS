@@ -22,6 +22,7 @@ import { ProductsPage } from '@/pages/ProductsPage';
 import { ProductEditPage } from '@/pages/ProductEditPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import { ActivityLogsPage } from '@/pages/ActivityLogsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { getCurrentUser, getDefaultPageForRole, isPageAccessible } from '@/lib/auth';
@@ -119,6 +120,8 @@ function App() {
         return [{ label: 'System' }, { label: 'Users' }];
       case 'settings':
         return [{ label: 'System' }, { label: 'Settings' }];
+      case 'profile':
+        return [{ label: 'Account' }, { label: 'My Profile' }];
       case 'activity-logs':
         return [{ label: 'System' }, { label: 'Activity Log' }];
       default:
@@ -147,7 +150,8 @@ function App() {
       case 'product-edit': return <ProductEditPage navigate={navigate} productId={params.productId} />;
       case 'activity-logs': return <ActivityLogsPage navigate={navigate} />;
       case 'users': return <UsersPage navigate={navigate} addToast={addToast} />;
-      case 'settings': return <SettingsPage />;
+      case 'settings': return <SettingsPage navigate={navigate} addToast={addToast} />;
+      case 'profile': return <ProfilePage navigate={navigate} addToast={addToast} />;
       default: return <DashboardPage navigate={navigate} addToast={addToast} />;
     }
   };
@@ -166,6 +170,7 @@ function App() {
         <TopNav
           onOpenMobileSidebar={() => setMobileOpen(true)}
           breadcrumb={<Breadcrumb items={getBreadcrumbs()} onNavigate={navigate} />}
+          onNavigate={navigate}
         />
         <main className="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto">
           {renderPage()}

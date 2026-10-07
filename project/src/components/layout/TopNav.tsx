@@ -1,19 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Bell, Menu, ChevronDown, HelpCircle, LogOut, User, Settings } from 'lucide-react';
 import { getCurrentUser, getRoleDisplayName } from '@/lib/auth';
+import type { PageId } from '@/types';
 
 interface TopNavProps {
   onOpenMobileSidebar: () => void;
   breadcrumb?: React.ReactNode;
+  onNavigate?: (page: PageId) => void;
 }
 
-export function TopNav({ onOpenMobileSidebar, breadcrumb }: TopNavProps) {
+export function TopNav({ onOpenMobileSidebar, breadcrumb, onNavigate }: TopNavProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
-  const currentUser = getCurrentUser();
-  const userName = currentUser?.name || 'Nguyễn Như Trung';
-  const userEmail = currentUser?.email || 'admin@srms.com';
-  const roleName = getRoleDisplayName(currentUser?.role_id, currentUser?.role);
+  const [user, setUser] = useState(() => getCurrentUser());
+
+  useEffect(() => {
+    const handleUserUpdate = (e: any) => {
+      setUser(e.detail || getCurrentUser());
+    };
+    window.addEventListener('user-updated', handleUserUpdate);
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+    };
+  }, []);
+
+  const userName = user?.name || 'Nguyễn Như Trung';
+  const userEmail = user?.email || 'admin@srms.com';
+  const roleName = getRoleDisplayName(user?.role_id, user?.role);
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-ink-200/60 h-16 flex items-center px-4 lg:px-6 gap-3">
@@ -116,15 +129,26 @@ export function TopNav({ onOpenMobileSidebar, breadcrumb }: TopNavProps) {
                 </div>
               </div>
               <div className="py-1">
-                {[
-                  { icon: User, label: 'My Profile' },
-                  { icon: Settings, label: 'Account Settings' },
-                ].map((item) => (
-                  <button key={item.label} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors">
-                    <item.icon className="w-4 h-4 text-ink-400" />
-                    {item.label}
-                  </button>
-                ))}
+                <button
+                  onClick={() => {
+                    onNavigate?.('profile');
+                    setUserOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                >
+                  <User className="w-4 h-4 text-ink-400" />
+                  My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    onNavigate?.('settings');
+                    setUserOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-ink-400" />
+                  Account Settings
+                </button>
               </div>
               <div className="border-t border-ink-100 py-1">
                 <button 

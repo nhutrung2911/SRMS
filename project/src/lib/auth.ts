@@ -32,6 +32,15 @@ export function getCurrentUser(): AuthUser | null {
   }
 }
 
+export function updateStoredUser(updated: Partial<AuthUser>): AuthUser | null {
+  const current = getCurrentUser();
+  if (!current) return null;
+  const merged = { ...current, ...updated };
+  localStorage.setItem('user', JSON.stringify(merged));
+  window.dispatchEvent(new Event('user-updated'));
+  return merged;
+}
+
 export function getRoleDisplayName(roleId?: number, role?: string): string {
   switch (roleId) {
     case 1: return 'Admin';
@@ -57,11 +66,13 @@ export function getDefaultPageForRole(roleId?: number): PageId {
 
 export function isPageAccessible(roleId: number | undefined, page: PageId): boolean {
   if (!roleId) return false;
+  // All authenticated users can access their own profile and personal settings
+  if (page === 'profile' || page === 'settings') return true;
   if (roleId === 1) return true; // Admin has full access
 
   if (roleId === 4) {
-    // Director: Read-only access to all modules, plus Activity Log. Forbidden: Users & System Settings, Product Edit.
-    const forbidden: PageId[] = ['users', 'settings', 'product-edit'];
+    // Director: Read-only access to all modules, plus Activity Log. Forbidden: Users management, Product Edit.
+    const forbidden: PageId[] = ['users', 'product-edit'];
     return !forbidden.includes(page);
   }
 
