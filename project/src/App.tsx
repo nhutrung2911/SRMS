@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { PageId, BreadcrumbItem } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { ToastContainer, type Toast } from '@/components/ui/Toast';
+import { parseRoute, updateBrowserUrl, getPageTitle, type RouteState } from '@/lib/router';
 
 import { DashboardPage } from '@/pages/DashboardPage';
 import { RevenueAnalyticsPage } from '@/pages/RevenueAnalyticsPage';
@@ -27,32 +28,101 @@ import { ActivityLogsPage } from '@/pages/ActivityLogsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { getCurrentUser, getDefaultPageForRole, isPageAccessible } from '@/lib/auth';
 
+function resolveInitialRoute(): RouteState {
+  const token = localStorage.getItem('token');
+  const u = getCurrentUser();
+  const parsed = parseRoute();
+
+  if (!token) {
+    return { page: 'login', params: {} };
+  }
+
+  if (parsed) {
+    if (parsed.page === 'login') {
+      return { page: getDefaultPageForRole(u?.role_id), params: {} };
+    }
+    if (isPageAccessible(u?.role_id, parsed.page)) {
+      return parsed;
+    }
+  }
+
+  return { page: getDefaultPageForRole(u?.role_id), params: {} };
+}
+
 function App() {
-  const [page, setPage] = useState<PageId>(() => {
-    if (!localStorage.getItem('token')) return 'login';
-    const u = getCurrentUser();
-    return getDefaultPageForRole(u?.role_id);
-  });
-  const [params, setParams] = useState<Record<string, string>>({});
+  const [route, setRoute] = useState<RouteState>(resolveInitialRoute);
+  const page = route.page;
+  const params = route.params;
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const navigate = useCallback((newPage: PageId, newParams: Record<string, string> = {}) => {
+  const navigate = useCallback((newPage: PageId, newParams: Record<string, string> = {}, replace: boolean = false) => {
     if (newPage === 'login') {
-      setPage('login');
-      setParams({});
+      setRoute({ page: 'login', params: {} });
+      updateBrowserUrl('login', {}, replace);
       return;
     }
+
     const u = getCurrentUser();
+    let targetPage = newPage;
+    let targetParams = newParams;
+
     if (u && !isPageAccessible(u.role_id, newPage)) {
-      setPage(getDefaultPageForRole(u.role_id));
-      setParams({});
-      return;
+      targetPage = getDefaultPageForRole(u.role_id);
+      targetParams = {};
     }
-    setPage(newPage);
-    setParams(newParams);
+
+    setRoute({ page: targetPage, params: targetParams });
+    updateBrowserUrl(targetPage, targetParams, replace);
     window.scrollTo({ top: 0 });
+  }, []);
+
+  // Listen to browser Back/Forward (popstate) and Hash change events
+  useEffect(() => {
+    updateBrowserUrl(route.page, route.params, true);
+
+    const onLocationChange = () => {
+      const token = localStorage.getItem('token');
+      const u = getCurrentUser();
+      const parsed = parseRoute();
+
+      if (!token) {
+        setRoute((prev) => {
+          if (prev.page !== 'login') {
+            updateBrowserUrl('login', {}, true);
+            return { page: 'login', params: {} };
+          }
+          return prev;
+        });
+        return;
+      }
+
+      if (!parsed || parsed.page === 'login') {
+        const defaultPage = getDefaultPageForRole(u?.role_id);
+        setRoute({ page: defaultPage, params: {} });
+        updateBrowserUrl(defaultPage, {}, true);
+        return;
+      }
+
+      if (isPageAccessible(u?.role_id, parsed.page)) {
+        setRoute(parsed);
+        document.title = getPageTitle(parsed.page);
+      } else {
+        const defaultPage = getDefaultPageForRole(u?.role_id);
+        setRoute({ page: defaultPage, params: {} });
+        updateBrowserUrl(defaultPage, {}, true);
+      }
+    };
+
+    window.addEventListener('popstate', onLocationChange);
+    window.addEventListener('hashchange', onLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', onLocationChange);
+      window.removeEventListener('hashchange', onLocationChange);
+    };
   }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
@@ -73,7 +143,7 @@ function App() {
       <>
         <LoginPage onSuccess={() => {
           const u = getCurrentUser();
-          navigate(getDefaultPageForRole(u?.role_id));
+          navigate(getDefaultPageForRole(u?.role_id), {}, true);
         }} />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </>
