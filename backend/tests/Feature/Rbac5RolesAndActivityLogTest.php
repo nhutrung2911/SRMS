@@ -199,4 +199,116 @@ class Rbac5RolesAndActivityLogTest extends TestCase
         $logs = collect($logResp->json('data'));
         $this->assertTrue($logs->contains('subject_id', $promoId));
     }
+
+    /**
+     * Dedicated Test: Confirm Order Cancel and Order Refund actions by Manager
+     * explicitly write records to activity_logs with correct metadata, user_id, and descriptions.
+     */
+    public function test_order_cancel_and_refund_explicitly_record_activity_logs(): void
+    {
+        $manager = User::where('email', 'manager@srms.com')->firstOrFail();
+        Sanctum::actingAs($manager, ['*']);
+
+        // --- 1. Test Order Cancel Activity Log ---
+        $pendingOrderId = DB::table('orders')->insertGetId([
+            'customer_id' => 1,
+            'staff_id' => 3, // Created originally by staff
+            'total_amount' => 1500000,
+            'discount_amount' => 0,
+            'final_amount' => 1500000,
+            'status' => 'Pending',
+            'order_date' => now(),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        $cancelResp = $this->putJson("/api/orders/{$pendingOrderId}", [
+            'status' => 'Cancelled'
+        ]);
+        $cancelResp->assertStatus(200);
+
+        // Verify activity_logs table for order.cancelled
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $manager->id,
+            'action' => 'order.cancelled',
+            'subject_type' => 'order',
+            'subject_id' => $pendingOrderId
+        ]);
+
+        $cancelLog = DB::table('activity_logs')
+            ->where('subject_type', 'order')
+            ->where('subject_id', $pendingOrderId)
+            ->where('action', 'order.cancelled')
+            ->first();
+
+        $this->assertNotNull($cancelLog);
+        $this->assertStringContainsString("Cancelled Order #{$pendingOrderId}", $cancelLog->description);
+        $this->assertEquals($manager->id, $cancelLog->user_id);
+        $cancelMeta = json_decode($cancelLog->metadata, true);
+        $this->assertEquals('Pending', $cancelMeta['old_status']);
+        $this->assertEquals(1500000, $cancelMeta['final_amount']);
+
+        // --- 2. Test Order Refund Activity Log ---
+        // Setup a Completed order on a specific past date
+        $completedOrderId = DB::table('orders')->insertGetId([
+            'customer_id' => 1,
+            'staff_id' => 3,
+            'total_amount' => 2500000,
+            'discount_amount' => 0,
+            'final_amount' => 2500000,
+            'status' => 'Completed',
+            'order_date' => '2026-08-15',
+            'created_at' => '2026-08-15 10:00:00',
+            'updated_at' => '2026-08-15 10:30:00'
+        ]);
+
+        // Insert item detail for this order
+        DB::table('order_details')->insert([
+            'order_id' => $completedOrderId,
+            'product_id' => 1,
+            'quantity' => 2,
+            'unit_price' => 1250000,
+            'cost_price' => 1000000,
+            'discount_amount' => 0,
+            'total' => 2500000,
+            'profit' => 500000
+        ]);
+
+        $refundResp = $this->putJson("/api/orders/{$completedOrderId}", [
+            'status' => 'Refunded'
+        ]);
+        $refundResp->assertStatus(200);
+
+        // Verify activity_logs table for order.refunded
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $manager->id,
+            'action' => 'order.refunded',
+            'subject_type' => 'order',
+            'subject_id' => $completedOrderId
+        ]);
+
+        $refundLog = DB::table('activity_logs')
+            ->where('subject_type', 'order')
+            ->where('subject_id', $completedOrderId)
+            ->where('action', 'order.refunded')
+            ->first();
+
+        $this->assertNotNull($refundLog);
+        $this->assertStringContainsString("Refunded Order #{$completedOrderId}", $refundLog->description);
+        $this->assertEquals($manager->id, $refundLog->user_id);
+        $refundMeta = json_decode($refundLog->metadata, true);
+        $this->assertEquals('Completed', $refundMeta['old_status']);
+        $this->assertEquals(2500000, $refundMeta['final_amount']);
+
+        // --- 3. Verify Director can monitor both logs via GET /api/activity-logs ---
+        $director = User::where('email', 'director@srms.com')->firstOrFail();
+        Sanctum::actingAs($director, ['*']);
+
+        $logsApiResp = $this->getJson('/api/activity-logs?subject_type=order');
+        $logsApiResp->assertStatus(200);
+
+        $returnedSubjectIds = collect($logsApiResp->json('data'))->pluck('subject_id')->all();
+        $this->assertContains($pendingOrderId, $returnedSubjectIds);
+        $this->assertContains($completedOrderId, $returnedSubjectIds);
+    }
 }

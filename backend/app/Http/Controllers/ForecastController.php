@@ -188,20 +188,20 @@ class ForecastController extends Controller
                 ->orderByDesc('sold_30')
                 ->first();
 
-            if ($fastest && $fastest->sold_30 > 0) {
+            if ($fastest) {
                 $velocity = round($fastest->sold_30 / 30, 2);
                 $daysRemaining = $velocity > 0 ? floor($fastest->stock_quantity / $velocity) : 999;
                 $insights[] = [
                     'id' => 'INS-INV-01',
                     'type' => 'inventory',
                     'title' => "Inventory Coverage: {$fastest->name}",
-                    'description' => "Product {$fastest->sku} is your top seller ({$fastest->sold_30} units in 30 days). Current stock is {$fastest->stock_quantity} units, estimated to cover ~{$daysRemaining} days.",
+                    'description' => "Product {$fastest->sku} inventory status: current stock is {$fastest->stock_quantity} units, estimated to cover ~{$daysRemaining} days.",
                     'impact' => $daysRemaining <= 45 ? 'medium' : 'low',
                     'action' => "Ensure reorder pipeline is scheduled on time to sustain sales momentum without stockouts.",
                     'relatedProduct' => (string) $fastest->id,
                     'evidence' => [
-                        "Current stock: {$fastest->stock_quantity} units (Healthily stocked)",
-                        "Sales velocity: {$velocity} units/day (Leading velocity)",
+                        "Current stock: {$fastest->stock_quantity} units",
+                        "Sales velocity: {$velocity} units/day",
                         "Estimated stock duration: ~{$daysRemaining} days"
                     ]
                 ];
