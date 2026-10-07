@@ -162,4 +162,77 @@ class AuthAndRbacTest extends TestCase
                 ]);
         }
     }
+
+    /**
+     * Test authenticated user can update profile name and activity log is written.
+     */
+    public function test_authenticated_user_can_update_profile_and_activity_logged(): void
+    {
+        $user = User::where('email', 'admin@srms.com')->firstOrFail();
+        Sanctum::actingAs($user, ['*']);
+
+        $newName = 'Updated Admin Name';
+        $response = $this->putJson('/api/user/profile', [
+            'name' => $newName,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'message' => 'Profile updated successfully',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $newName,
+                ]
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => $newName,
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $user->id,
+            'action' => 'update',
+            'subject_type' => 'User',
+            'subject_id' => $user->id,
+        ]);
+    }
+
+    /**
+     * Test authenticated user can update password with current password verification.
+     */
+    public function test_authenticated_user_can_update_password_and_fails_with_invalid_current_password(): void
+    {
+        $user = User::where('email', 'staff1@srms.com')->firstOrFail();
+        Sanctum::actingAs($user, ['*']);
+
+        // 1. Wrong current password fails with 422
+        $failResponse = $this->putJson('/api/user/password', [
+            'current_password' => 'wrong-current-password',
+            'new_password' => 'newsecret123',
+            'new_password_confirmation' => 'newsecret123',
+        ]);
+
+        $failResponse->assertStatus(422);
+
+        // 2. Correct current password succeeds
+        $successResponse = $this->putJson('/api/user/password', [
+            'current_password' => 'password',
+            'new_password' => 'newsecret123',
+            'new_password_confirmation' => 'newsecret123',
+        ]);
+
+        $successResponse->assertStatus(200)
+            ->assertJson([
+                'message' => 'Password updated successfully'
+            ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $user->id,
+            'action' => 'update_password',
+            'subject_type' => 'User',
+            'subject_id' => $user->id,
+        ]);
+    }
 }
+

@@ -18,9 +18,11 @@ Route::post('/login', [AuthController::class, 'login']);
 // Protected routes (Require Sanctum Authentication)
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Auth
+    // Auth & Profile
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
 
     // Dashboard & KPIs
     Route::get('/dashboard/kpis', [DashboardController::class, 'getKpis']);
