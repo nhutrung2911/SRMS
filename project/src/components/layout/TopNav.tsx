@@ -164,8 +164,7 @@ export function TopNav({ onOpenMobileSidebar, breadcrumb, onNavigate }: TopNavPr
                     } catch (e) { console.error(e); }
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.hash = '#/login';
-                    window.location.reload();
+                    window.location.href = '/login';
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors"
                 >

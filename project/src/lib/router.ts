@@ -64,20 +64,33 @@ export function getPageTitle(page: PageId): string {
 }
 
 /**
- * Parses the current hash or provided string into a valid PageId and parameters dictionary.
+ * Parses the current URL pathname and search parameters into a valid PageId and parameters dictionary.
+ * Supports clean path routing (/promotions, /orders/123) and seamlessly migrates legacy hash routing (#/promotions).
  */
-export function parseRoute(hashOrUrl?: string): RouteState | null {
-  const raw = hashOrUrl !== undefined ? hashOrUrl : (typeof window !== 'undefined' ? window.location.hash : '');
-  
-  // Clean hash prefix: remove leading '#', '#!', or '/'
-  let pathWithQuery = raw.replace(/^#[!/]?/, '').trim();
-  if (!pathWithQuery) {
-    return null;
+export function parseRoute(urlOrPath?: string): RouteState | null {
+  let pathname = '';
+  let queryString = '';
+
+  if (urlOrPath !== undefined) {
+    const clean = urlOrPath.replace(/^#[!/]?/, '');
+    const [pathPart, queryPart] = clean.split('?');
+    pathname = pathPart || '';
+    queryString = queryPart || '';
+  } else if (typeof window !== 'undefined') {
+    // If user entered via legacy hash (#/promotions), migrate it
+    if (window.location.hash && window.location.hash.length > 1) {
+      const hashClean = window.location.hash.replace(/^#[!/]?/, '');
+      const [hPath, hQuery] = hashClean.split('?');
+      pathname = hPath || '';
+      queryString = hQuery || window.location.search.replace(/^\?/, '');
+    } else {
+      pathname = window.location.pathname;
+      queryString = window.location.search.replace(/^\?/, '');
+    }
   }
 
-  // Separate path from query string
-  const [pathname, queryString] = pathWithQuery.split('?');
-  const path = pathname.replace(/^\/+|\/+$/g, ''); // strip leading/trailing slashes
+  // Strip leading and trailing slashes
+  const path = pathname.replace(/^\/+|\/+$/g, '').trim();
 
   // Parse query string parameters
   const params: Record<string, string> = {};
@@ -88,7 +101,11 @@ export function parseRoute(hashOrUrl?: string): RouteState | null {
     });
   }
 
-  // Handle path-based routing aliases (e.g., /orders/123 -> order-detail with orderId=123)
+  if (!path) {
+    return null;
+  }
+
+  // Path-based routing aliases (e.g., /orders/123 -> order-detail with orderId=123)
   const segments = path.split('/').filter(Boolean);
   if (segments.length === 2) {
     const [section, id] = segments;
@@ -116,37 +133,37 @@ export function parseRoute(hashOrUrl?: string): RouteState | null {
 }
 
 /**
- * Serializes a page and parameters into a canonical hash route string.
+ * Serializes a page and parameters into a canonical clean path URL (without `#`).
  */
 export function buildRoute(page: PageId, params: Record<string, string> = {}): string {
   // Use pretty path-based URLs for detail pages if id is present
   if (page === 'order-detail' && params.orderId) {
     const { orderId, ...rest } = params;
     const query = new URLSearchParams(rest).toString();
-    return `#/orders/${encodeURIComponent(orderId)}${query ? `?${query}` : ''}`;
+    return `/orders/${encodeURIComponent(orderId)}${query ? `?${query}` : ''}`;
   }
   if (page === 'product-detail' && params.productId) {
     const { productId, ...rest } = params;
     const query = new URLSearchParams(rest).toString();
-    return `#/products/${encodeURIComponent(productId)}${query ? `?${query}` : ''}`;
+    return `/products/${encodeURIComponent(productId)}${query ? `?${query}` : ''}`;
   }
   if (page === 'customer-detail' && params.customerId) {
     const { customerId, ...rest } = params;
     const query = new URLSearchParams(rest).toString();
-    return `#/customers/${encodeURIComponent(customerId)}${query ? `?${query}` : ''}`;
+    return `/customers/${encodeURIComponent(customerId)}${query ? `?${query}` : ''}`;
   }
   if (page === 'promotion-detail' && params.promotionId) {
     const { promotionId, ...rest } = params;
     const query = new URLSearchParams(rest).toString();
-    return `#/promotions/${encodeURIComponent(promotionId)}${query ? `?${query}` : ''}`;
+    return `/promotions/${encodeURIComponent(promotionId)}${query ? `?${query}` : ''}`;
   }
 
   const query = new URLSearchParams(params).toString();
-  return `#/${page}${query ? `?${query}` : ''}`;
+  return `/${page}${query ? `?${query}` : ''}`;
 }
 
 /**
- * Synchronizes browser URL history and document title.
+ * Synchronizes browser URL history (clean paths without `#`) and document title.
  */
 export function updateBrowserUrl(
   page: PageId,
@@ -155,14 +172,15 @@ export function updateBrowserUrl(
 ): void {
   if (typeof window === 'undefined') return;
 
-  const targetHash = buildRoute(page, params);
+  const targetUrl = buildRoute(page, params);
+  const currentUrl = window.location.pathname + window.location.search;
 
-  // If current hash matches target, avoid pushing redundant history states
-  if (window.location.hash !== targetHash) {
+  // Update history if target URL differs or if there's leftover hash
+  if (currentUrl !== targetUrl || window.location.hash) {
     if (replace) {
-      window.history.replaceState(null, '', targetHash);
+      window.history.replaceState(null, '', targetUrl);
     } else {
-      window.history.pushState(null, '', targetHash);
+      window.history.pushState(null, '', targetUrl);
     }
   }
 
