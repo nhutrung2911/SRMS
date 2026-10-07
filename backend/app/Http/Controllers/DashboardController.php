@@ -25,14 +25,44 @@ class DashboardController extends Controller
         if ($type === 'today') {
             $query->whereDate('date', Carbon::today());
             $prevQuery->whereDate('date', Carbon::yesterday());
+            // If today has no records, fallback to latest single day
+            if (!(clone $query)->exists()) {
+                $latestDate = DB::table('revenue_daily')->max('date');
+                if ($latestDate) {
+                    $latest = Carbon::parse($latestDate);
+                    $query = DB::table('revenue_daily')->whereDate('date', $latest->toDateString());
+                    $prevQuery = DB::table('revenue_daily')->whereDate('date', $latest->copy()->subDay()->toDateString());
+                }
+            }
         } elseif ($type === 'month') {
             $query->whereMonth('date', Carbon::now()->month)
                   ->whereYear('date', Carbon::now()->year);
             $prevQuery->whereMonth('date', Carbon::now()->subMonth()->month)
                       ->whereYear('date', Carbon::now()->subMonth()->year);
+            // If current calendar month has no records, fallback to the latest available month
+            if (!(clone $query)->exists()) {
+                $latestDate = DB::table('revenue_daily')->max('date');
+                if ($latestDate) {
+                    $latest = Carbon::parse($latestDate);
+                    $query = DB::table('revenue_daily')
+                        ->whereMonth('date', $latest->month)
+                        ->whereYear('date', $latest->year);
+                    $prevQuery = DB::table('revenue_daily')
+                        ->whereMonth('date', $latest->copy()->subMonth()->month)
+                        ->whereYear('date', $latest->copy()->subMonth()->year);
+                }
+            }
         } elseif ($type === 'year') {
             $query->whereYear('date', Carbon::now()->year);
             $prevQuery->whereYear('date', Carbon::now()->subYear()->year);
+            if (!(clone $query)->exists()) {
+                $latestDate = DB::table('revenue_daily')->max('date');
+                if ($latestDate) {
+                    $latest = Carbon::parse($latestDate);
+                    $query = DB::table('revenue_daily')->whereYear('date', $latest->year);
+                    $prevQuery = DB::table('revenue_daily')->whereYear('date', $latest->copy()->subYear()->year);
+                }
+            }
         } else {
             // Default to 30 days
             $query->where('date', '>=', Carbon::now()->subDays(30)->toDateString());
@@ -40,6 +70,17 @@ class DashboardController extends Controller
                 Carbon::now()->subDays(60)->toDateString(),
                 Carbon::now()->subDays(30)->subDay()->toDateString()
             ]);
+            if (!(clone $query)->exists()) {
+                $latestDate = DB::table('revenue_daily')->max('date');
+                if ($latestDate) {
+                    $latest = Carbon::parse($latestDate);
+                    $query = DB::table('revenue_daily')->where('date', '>=', $latest->copy()->subDays(30)->toDateString());
+                    $prevQuery = DB::table('revenue_daily')->whereBetween('date', [
+                        $latest->copy()->subDays(60)->toDateString(),
+                        $latest->copy()->subDays(30)->subDay()->toDateString()
+                    ]);
+                }
+            }
         }
 
         $stats = $query->select(
@@ -113,11 +154,29 @@ class DashboardController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
+        // If no records in current calendar window (e.g. historical seed data or sparse days),
+        // fetch the most recent $days historical records to ensure charts remain informative.
+        if ($dailyData->isEmpty()) {
+            $dailyData = DB::table('revenue_daily')
+                ->orderBy('date', 'desc')
+                ->take($days)
+                ->get()
+                ->reverse()
+                ->values();
+        }
+
         $formattedData = $dailyData->map(function ($day) {
+            $formattedDate = Carbon::parse($day->date)->format('M d');
             return [
-                'name' => Carbon::parse($day->date)->format('M d'),
+                'date' => $day->date,
+                'name' => $formattedDate,
+                'label' => $formattedDate,
                 'revenue' => (float) $day->total_revenue,
+                'total_revenue' => (float) $day->total_revenue,
                 'profit' => (float) $day->total_profit,
+                'total_profit' => (float) $day->total_profit,
+                'orders' => (int) ($day->total_orders ?? 0),
+                'total_orders' => (int) ($day->total_orders ?? 0),
             ];
         });
 
