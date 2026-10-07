@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { ToastContainer, type Toast } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { parseRoute, updateBrowserUrl, getPageTitle, type RouteState } from '@/lib/router';
 
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -243,7 +244,9 @@ function App() {
           onNavigate={navigate}
         />
         <main className="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto">
-          {renderPage()}
+          <ErrorBoundary key={page}>
+            {renderPage()}
+          </ErrorBoundary>
         </main>
       </div>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

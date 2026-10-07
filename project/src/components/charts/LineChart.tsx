@@ -15,21 +15,40 @@ const seriesConfig = {
   orders: { color: '#F59E0B', label: 'Orders' },
 };
 
-export function LineChart({ data, series, height = 320, formatValue = (v) => formatCurrency(v) }: LineChartProps) {
+export function LineChart({
+  data = [],
+  series,
+  height = 320,
+  formatValue = (v) => formatCurrency(v),
+}: LineChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const padding = { top: 20, right: 16, bottom: 32, left: 64 };
   const width = 800;
   const innerW = width - padding.left - padding.right;
   const innerH = height - padding.top - padding.bottom;
 
+  // Safe fallback if data is empty: render helpful empty state instead of crashing
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-ink-400 text-sm h-full" style={{ height }}>
+        <p className="font-medium text-ink-500">No data available</p>
+        <p className="text-xs text-ink-400 mt-1">There is no revenue data recorded for this time range.</p>
+      </div>
+    );
+  }
+
   const { maxVal, scales, xPositions } = useMemo(() => {
-    const allValues = data.flatMap((d) => series.map((s) => d[s]));
-    const max = Math.max(...allValues) * 1.1;
+    const allValues = data.flatMap((d) => series.map((s) => Number(d[s]) || 0));
+    const rawMax = allValues.length > 0 ? Math.max(...allValues) : 0;
+    const max = rawMax > 0 ? rawMax * 1.1 : 100;
     const min = 0;
-    const stepX = innerW / Math.max(1, data.length - 1);
-    const xPs = data.map((_, i) => padding.left + i * stepX);
+    const stepX = data.length > 1 ? innerW / (data.length - 1) : innerW / 2;
+    const xPs = data.map((_, i) => (data.length === 1 ? padding.left + innerW / 2 : padding.left + i * stepX));
     const sc = series.reduce((acc, s) => {
-      acc[s] = (val: number) => padding.top + innerH - ((val - min) / (max - min)) * innerH;
+      acc[s] = (val: number) => {
+        const safeVal = Number(val) || 0;
+        return padding.top + innerH - ((safeVal - min) / (max - min)) * innerH;
+      };
       return acc;
     }, {} as Record<string, (val: number) => number>);
     return { maxVal: max, scales: sc, xPositions: xPs };
@@ -39,6 +58,7 @@ export function LineChart({ data, series, height = 320, formatValue = (v) => for
   const tickValues = Array.from({ length: yTicks + 1 }, (_, i) => (maxVal / yTicks) * i);
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!xPositions.length) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * width;
     let closest = 0;
@@ -70,8 +90,23 @@ export function LineChart({ data, series, height = 320, formatValue = (v) => for
           const y = padding.top + innerH - (tv / maxVal) * innerH;
           return (
             <g key={i}>
-              <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#E2E8F0" strokeWidth={1} strokeDasharray="3 3" />
-              <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#94A3B8" fontFamily="Inter">
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                stroke="#E2E8F0"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+              />
+              <text
+                x={padding.left - 8}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="#94A3B8"
+                fontFamily="Inter"
+              >
                 {formatValue(tv)}
               </text>
             </g>
@@ -99,10 +134,20 @@ export function LineChart({ data, series, height = 320, formatValue = (v) => for
         {/* Series lines */}
         {series.map((s) => {
           const cfg = seriesConfig[s];
+          if (!scales[s] || data.length === 0) return null;
           const path = data
-            .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xPositions[i].toFixed(1)} ${scales[s](d[s]).toFixed(1)}`)
+            .map(
+              (d, i) =>
+                `${i === 0 ? 'M' : 'L'} ${(xPositions[i] ?? 0).toFixed(1)} ${(
+                  scales[s](d[s]) ?? 0
+                ).toFixed(1)}`
+            )
             .join(' ');
-          const areaPath = `${path} L ${xPositions[data.length - 1].toFixed(1)} ${padding.top + innerH} L ${xPositions[0].toFixed(1)} ${padding.top + innerH} Z`;
+          const lastX = (xPositions[data.length - 1] ?? padding.left + innerW).toFixed(1);
+          const firstX = (xPositions[0] ?? padding.left).toFixed(1);
+          const areaPath = `${path} L ${lastX} ${padding.top + innerH} L ${firstX} ${
+            padding.top + innerH
+          } Z`;
           const gradId = `line-grad-${s}`;
           return (
             <g key={s}>
@@ -113,13 +158,20 @@ export function LineChart({ data, series, height = 320, formatValue = (v) => for
                 </linearGradient>
               </defs>
               {series.length === 1 && <path d={areaPath} fill={`url(#${gradId})`} />}
-              <path d={path} fill="none" stroke={cfg.color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d={path}
+                fill="none"
+                stroke={cfg.color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </g>
           );
         })}
 
         {/* Hover indicator */}
-        {hoverIdx !== null && (
+        {hoverIdx !== null && data[hoverIdx] && (
           <g>
             <line
               x1={xPositions[hoverIdx]}
@@ -146,7 +198,7 @@ export function LineChart({ data, series, height = 320, formatValue = (v) => for
       </svg>
 
       {/* Tooltip */}
-      {hoverIdx !== null && (
+      {hoverIdx !== null && data[hoverIdx] && (
         <div
           className="absolute bg-ink-900 text-white text-xs rounded-lg px-3 py-2 pointer-events-none shadow-pop z-10 whitespace-nowrap"
           style={{

@@ -93,12 +93,23 @@ export function DashboardPage({ navigate, addToast }: PageProps) {
         setSegmentData(segmentsMapped);
 
         // Chart Data Mapping
-        const formattedChart = chartRes.data.map((d: any) => ({
-          label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          revenue: Number(d.total_revenue),
-          profit: Number(d.total_profit),
-          orders: Number(d.total_orders)
-        }));
+        const formattedChart = Array.isArray(chartRes.data)
+          ? chartRes.data.map((d: any) => {
+              let label = d.label || d.name;
+              if (!label && d.date) {
+                const parsed = new Date(d.date);
+                label = isNaN(parsed.getTime())
+                  ? String(d.date)
+                  : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              }
+              return {
+                label: label || 'N/A',
+                revenue: Number(d.revenue ?? d.total_revenue ?? 0),
+                profit: Number(d.profit ?? d.total_profit ?? 0),
+                orders: Number(d.orders ?? d.total_orders ?? 0),
+              };
+            })
+          : [];
         setChartData(formattedChart);
 
       } catch (error) {
