@@ -311,4 +311,38 @@ class Rbac5RolesAndActivityLogTest extends TestCase
         $this->assertContains($pendingOrderId, $returnedSubjectIds);
         $this->assertContains($completedOrderId, $returnedSubjectIds);
     }
+
+    /**
+     * Test Manager role is forbidden (403) from routine order progress updates
+     * (Processing, Completed), which is reserved strictly for Staff and Admin.
+     */
+    public function test_manager_is_forbidden_from_updating_order_progress(): void
+    {
+        $manager = User::where('email', 'manager@srms.com')->firstOrFail();
+        Sanctum::actingAs($manager, ['*']);
+
+        $pendingOrderId = DB::table('orders')->insertGetId([
+            'customer_id' => 1,
+            'staff_id' => 3,
+            'total_amount' => 1000000,
+            'discount_amount' => 0,
+            'final_amount' => 1000000,
+            'status' => 'Pending',
+            'order_date' => now(),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        // Attempting to move Pending -> Processing as Manager should return 403 Forbidden
+        $response = $this->putJson("/api/orders/{$pendingOrderId}", [
+            'status' => 'Processing'
+        ]);
+        $response->assertStatus(403);
+
+        // Attempting to move Pending -> Completed as Manager should return 403 Forbidden
+        $response2 = $this->putJson("/api/orders/{$pendingOrderId}", [
+            'status' => 'Completed'
+        ]);
+        $response2->assertStatus(403);
+    }
 }

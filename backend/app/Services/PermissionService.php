@@ -54,7 +54,7 @@ class PermissionService
         // 10. Orders
         'orders.view' => ['admin', 'director', 'manager', 'staff'],
         'orders.create' => ['admin', 'staff'],
-        'orders.update_progress' => ['admin', 'manager', 'staff'], // Confirmed, Processing, Completed
+        'orders.update_progress' => ['admin', 'staff'], // Confirmed, Processing, Completed (Manager restricted to cancel/refund)
         'orders.cancel_refund' => ['admin', 'manager'], // Director is read-only, Staff forbidden
 
         // 11. Promotions
