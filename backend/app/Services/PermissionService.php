@@ -31,9 +31,9 @@ class PermissionService
         'customer_analytics.view' => ['admin', 'director', 'manager', 'customer_service'],
 
         // 5. Customer Detail / CRUD
-        'customer.view' => ['admin', 'director', 'manager', 'staff', 'customer_service'],
+        'customer.view' => ['admin', 'director', 'manager', 'customer_service'],
         'customer.create' => ['admin', 'staff'],
-        'customer.update' => ['admin', 'staff', 'customer_service'],
+        'customer.update' => ['admin', 'customer_service'],
 
         // 6. Forecast & AI Insights
         'forecast.view' => ['admin', 'director', 'manager'],

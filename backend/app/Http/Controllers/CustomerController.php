@@ -158,9 +158,9 @@ class CustomerController extends Controller
         $customerId = DB::transaction(function () use ($request, $now) {
             $id = DB::table('customers')->insertGetId([
                 'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'address' => $request->address,
+                'email' => !empty($request->email) ? $request->email : null,
+                'phone' => !empty($request->phone) ? $request->phone : null,
+                'address' => !empty($request->address) ? $request->address : null,
                 'total_spending' => 0,
                 'total_orders' => 0,
                 'last_purchase_date' => null,

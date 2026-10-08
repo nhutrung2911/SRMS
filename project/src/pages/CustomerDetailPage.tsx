@@ -46,7 +46,7 @@ const segmentDesc: Record<string, string> = {
 
 export function CustomerDetailPage({ navigate, customerId, addToast }: PageProps & { customerId: string }) {
   const user = getCurrentUser();
-  const canEditCustomer = user?.role_id === 1 || user?.role_id === 3 || user?.role_id === 5;
+  const canEditCustomer = user?.role_id === 1 || user?.role_id === 5;
 
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<any>(null);

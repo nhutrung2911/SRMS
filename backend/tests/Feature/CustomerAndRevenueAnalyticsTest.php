@@ -29,7 +29,7 @@ class CustomerAndRevenueAnalyticsTest extends TestCase
      */
     public function test_customer_detail_reuses_single_source_of_truth(): void
     {
-        Sanctum::actingAs($this->staff, ['*']);
+        Sanctum::actingAs($this->manager, ['*']);
 
         // Find customer with existing segment data
         $customer = DB::table('customers')
@@ -123,7 +123,10 @@ class CustomerAndRevenueAnalyticsTest extends TestCase
         $this->assertEquals(1, $dbSegment->f_score);
         $this->assertEquals(1, $dbSegment->m_score);
 
-        // 2. Update customer details
+        // 2. Update customer details (Staff cannot update, Admin/CS can)
+        $admin = User::where('email', 'admin@srms.com')->firstOrFail();
+        Sanctum::actingAs($admin, ['*']);
+
         $updateRes = $this->putJson("/api/customers/{$customerId}", [
             'phone' => '0909999888',
             'address' => '456 Tran Phu, Da Nang',

@@ -63,9 +63,9 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
     try {
       const res = await api.post('/customers', {
         name: newCustName.trim(),
-        phone: newCustPhone.trim() || undefined,
-        email: newCustEmail.trim() || undefined,
-        address: newCustAddress.trim() || undefined,
+        phone: newCustPhone.trim() ? newCustPhone.trim() : null,
+        email: newCustEmail.trim() ? newCustEmail.trim() : null,
+        address: newCustAddress.trim() ? newCustAddress.trim() : null,
       });
       const createdId = res.data.customer_id || res.data.id;
       const createdCustomer = {
@@ -419,7 +419,7 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-ink-600 mb-1">Phone</label>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Phone <span className="text-ink-400 font-normal">(Optional)</span></label>
                     <input
                       type="text"
                       placeholder="e.g. 0912345678"
@@ -429,7 +429,7 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-ink-600 mb-1">Email</label>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Email <span className="text-ink-400 font-normal">(Optional)</span></label>
                     <input
                       type="email"
                       placeholder="e.g. an.tran@example.com"
@@ -439,7 +439,7 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-ink-600 mb-1">Address</label>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Address <span className="text-ink-400 font-normal">(Optional)</span></label>
                     <input
                       type="text"
                       placeholder="e.g. 123 Nguyen Hue, Da Nang"

@@ -101,7 +101,7 @@ export function isPageAccessible(roleId: number | undefined, page: PageId): bool
   }
 
   if (roleId === 3) {
-    // Staff: Orders, Inventory, Promotions, Catalog products, Customer detail
+    // Staff: Orders, Inventory, Promotions, Catalog products
     const allowed: PageId[] = [
       'orders',
       'order-detail',
@@ -109,7 +109,6 @@ export function isPageAccessible(roleId: number | undefined, page: PageId): bool
       'promotions',
       'promotion-detail',
       'products',
-      'customer-detail',
     ];
     return allowed.includes(page);
   }

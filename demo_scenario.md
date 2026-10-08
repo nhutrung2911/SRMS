@@ -166,12 +166,12 @@
 
 ---
 
-### Q4: Phân quyền RBAC (Role-Based Access Control) được tổ chức như thế nào và tại sao Nhân viên (Staff) được phép thêm/sửa khách hàng?
+### Q4: Phân quyền RBAC (Role-Based Access Control) được tổ chức như thế nào và tại sao Nhân viên (Staff) được phép thêm khách hàng nhưng không được sửa?
 **Trả lời:**
 > "Hệ thống phân chia 5 vai trò rõ ràng và được kiểm soát chặt chẽ ở cả tầng Backend (PermissionService matrix, API Middleware, Policy) lẫn tầng Frontend (UI Route Guards, Dynamic Action Filtering):
-> - **Staff**: Tối ưu cho quy trình bán hàng tại quầy. Staff được **chủ động phân quyền** thêm mới khách hàng inline ngay trong modal tạo đơn hàng (`POST /api/customers`) vì thu ngân là người trực tiếp tiếp xúc và đăng ký thẻ thành viên khi thanh toán. Tuy nhiên, Staff bị chặn hoàn toàn khỏi trang tổng hợp phân tích khách hàng (`/customers-analytics`), không có quyền hoàn tiền/hủy đơn (`orders.cancel_refund`), và không được xem báo cáo tài chính (`/revenue-analytics`).
-> - **Manager**: Tập trung vào giám sát hiệu suất và ra quyết định kinh doanh. Theo ma trận phân quyền chuẩn, Manager chỉ có quyền **XEM** danh sách và phân tích chuyên sâu khách hàng (`customer.view`), **KHÔNG** trực tiếp tạo hoặc sửa khách hàng (`customer.create`, `customer.update` chỉ dành cho Staff tạo tại POS, Customer Service chăm sóc sau bán và Admin). Manager có quyền xử lý khiếu nại (Hủy/Hoàn tiền đơn hàng), theo dõi báo cáo doanh thu đa chiều (`/revenue-analytics`), dự báo (`/forecast`), xem AI Insights và phê duyệt khuyến mãi/giá bán (`/ai-recommendations`).
-> - **Customer Service**: Tập trung vào chăm sóc khách hàng sau bán. CS chỉ được truy cập duy nhất module Khách hàng (`/customers-analytics`), được phép cập nhật thông tin liên hệ của khách hàng (`customer.update`), nhưng không thể đăng ký khách hàng mới hoặc can thiệp vào đơn hàng, kho và tài chính.
+> - **Staff**: Tối ưu cho quy trình bán hàng tại quầy. Staff được **chủ động phân quyền** thêm mới khách hàng inline ngay trong modal tạo đơn hàng (`POST /api/customers`) vì thu ngân là người trực tiếp tiếp xúc và đăng ký khách hàng vãng lai tại quầy. Tuy nhiên, Staff bị chặn hoàn toàn khỏi trang phân tích khách hàng và chi tiết khách hàng (`GET /api/customers/{id}` trả 403, không xem điểm RFM/phân khúc; các route `/customer-detail` và `/customers-analytics` đều bị chặn), không có quyền sửa thông tin khách hàng (`customer.update` chỉ dành cho Admin và Customer Service), không có quyền hoàn tiền/hủy đơn (`orders.cancel_refund`), và không được xem báo cáo tài chính (`/revenue-analytics`).
+> - **Manager**: Tập trung vào giám sát hiệu suất và ra quyết định kinh doanh. Theo ma trận phân quyền chuẩn, Manager chỉ có quyền **XEM** danh sách và phân tích chuyên sâu khách hàng (`customer.view`), **KHÔNG** trực tiếp tạo hoặc sửa khách hàng (`customer.create` chỉ dành cho Staff & Admin; `customer.update` chỉ dành cho Customer Service chăm sóc sau bán & Admin). Manager có quyền xử lý khiếu nại (Hủy/Hoàn tiền đơn hàng), theo dõi báo cáo doanh thu đa chiều (`/revenue-analytics`), dự báo (`/forecast`), xem AI Insights và phê duyệt khuyến mãi/giá bán (`/ai-recommendations`).
+> - **Customer Service**: Tập trung vào chăm sóc khách hàng sau bán. CS chỉ được truy cập duy nhất module Khách hàng (`/customers-analytics`), được phép xem chi tiết hồ sơ RFM và cập nhật thông tin liên hệ của khách hàng (`customer.update`), nhưng không thể đăng ký khách hàng mới hoặc can thiệp vào đơn hàng, kho và tài chính.
 > - **Director**: Giám sát cấp cao với quyền Read-Only toàn diện trên các module vận hành, báo cáo tài chính và Activity Log; bị chặn tạo/sửa dữ liệu và không quản lý tài khoản người dùng.
 > - **Admin**: Quản trị viên tối cao, nắm toàn quyền trên mọi module (Users, Catalog, Settings, Activity Log, CRUD dữ liệu)."
 
@@ -188,8 +188,8 @@
 
 ### Q6: Bộ kiểm thử tự động (Automated Testing) được xây dựng như thế nào để đảm bảo chất lượng hệ thống?
 **Trả lời:**
-> "Hệ thống sở hữu bộ kiểm thử tự động toàn diện gồm **32 test cases, 502 assertions, 100% passing** chạy trên môi trường MySQL thực tế:
-> 1. `AuthAndRbacTest`: Kiểm tra xác thực Sanctum, phân quyền 5 vai trò, chặn Staff (403), chặn Manager tạo/sửa khách hàng (403), cho phép Staff và Admin tạo khách hàng, kiểm tra cập nhật hồ sơ cá nhân và ghi Activity Log.
+> "Hệ thống sở hữu bộ kiểm thử tự động toàn diện gồm **33 test cases, 508 assertions, 100% passing** chạy trên môi trường MySQL thực tế:
+> 1. `AuthAndRbacTest`: Kiểm tra xác thực Sanctum, phân quyền 5 vai trò, chặn Staff xem chi tiết khách hàng và sửa khách (403), chặn Manager tạo/sửa khách hàng (403), cho phép Staff và Admin tạo khách hàng, kiểm tra cập nhật hồ sơ cá nhân và ghi Activity Log.
 > 2. `Rbac5RolesAndActivityLogTest`: Kiểm thử ma trận phân quyền 5 vai trò (Director, Manager, Staff, Customer Service, Admin) trên mọi API endpoints, kiểm tra tính toàn vẹn và chi tiết của Activity Log.
 > 3. `OrderLifecycleAndAcidTest`: Kiểm tra vòng đời đơn hàng, khóa giá chống giả mạo, trừ kho nguyên tử, rollback khi hết hàng, và **hoàn tiền trên ngày quá khứ cụ thể** nhằm bảo vệ hệ thống khỏi lỗi hồi quy `revenue_daily`.
 > 4. `PromotionLogicTest`: Kiểm tra công thức giảm giá phần trăm/cố định, cơ chế chống xóa khuyến mãi đã có đơn hàng, và phòng ngừa lỗi chia cho 0.

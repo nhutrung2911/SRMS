@@ -122,43 +122,79 @@ class AuthAndRbacTest extends TestCase
     }
 
     /**
-     * Test CustomerController store and update are explicitly permitted
-     * for Staff and Admin (and Customer Service for update).
+     * Test CustomerController store is permitted for Staff and Admin,
+     * while update is permitted for Admin and Customer Service, but strictly forbidden for Staff.
      */
-    public function test_customer_store_and_update_permitted_for_staff_and_admin(): void
+    public function test_customer_store_and_update_permissions(): void
     {
-        $roles = [
-            'staff' => 'staff1@srms.com',
-            'admin' => 'admin@srms.com',
-        ];
+        // 1. Staff can create customer
+        $staff = User::where('email', 'staff1@srms.com')->firstOrFail();
+        Sanctum::actingAs($staff, ['*']);
 
-        foreach ($roles as $roleName => $email) {
-            $user = User::where('email', $email)->firstOrFail();
-            Sanctum::actingAs($user, ['*']);
+        $staffStoreRes = $this->postJson('/api/customers', [
+            'name' => 'Staff Created Customer',
+            'email' => 'staff_created_' . uniqid() . '@example.com',
+            'phone' => '0987111222',
+            'address' => 'Staff Counter 1'
+        ]);
+        $staffStoreRes->assertStatus(201)->assertJsonStructure(['message', 'customer_id']);
+        $customerId = $staffStoreRes->json('customer_id');
 
-            // 1. Test POST /api/customers
-            $storeResponse = $this->postJson('/api/customers', [
-                'name' => "Test Customer by {$roleName}",
-                'email' => "test_{$roleName}_" . uniqid() . "@example.com",
-                'phone' => '0987654321',
-                'address' => "Registered by {$roleName}"
-            ]);
+        // Staff is FORBIDDEN from updating customer
+        $this->putJson("/api/customers/{$customerId}", [
+            'name' => 'Staff Attempted Update',
+            'phone' => '0912345678'
+        ])->assertStatus(403);
 
-            $storeResponse->assertStatus(201)
-                ->assertJsonStructure(['message', 'customer_id']);
+        // 2. Admin can create and update customer
+        $admin = User::where('email', 'admin@srms.com')->firstOrFail();
+        Sanctum::actingAs($admin, ['*']);
 
-            $customerId = $storeResponse->json('customer_id');
+        $adminStoreRes = $this->postJson('/api/customers', [
+            'name' => 'Admin Created Customer',
+            'email' => 'admin_created_' . uniqid() . '@example.com',
+        ]);
+        $adminStoreRes->assertStatus(201);
 
-            // 2. Test PUT /api/customers/{id}
-            $updateResponse = $this->putJson("/api/customers/{$customerId}", [
-                'name' => "Updated Customer by {$roleName}",
-                'phone' => '0912345678'
-            ]);
+        $adminUpdateRes = $this->putJson("/api/customers/{$customerId}", [
+            'name' => 'Admin Updated Customer',
+            'phone' => '0912345678'
+        ]);
+        $adminUpdateRes->assertStatus(200)->assertJson(['message' => 'Customer updated successfully.']);
 
-            $updateResponse->assertStatus(200)
-                ->assertJson([
-                    'message' => 'Customer updated successfully.'
-                ]);
+        // 3. Customer Service can update customer
+        $cs = User::where('email', 'cs@srms.com')->firstOrFail();
+        Sanctum::actingAs($cs, ['*']);
+
+        $csUpdateRes = $this->putJson("/api/customers/{$customerId}", [
+            'phone' => '0999888777'
+        ]);
+        $csUpdateRes->assertStatus(200)->assertJson(['message' => 'Customer updated successfully.']);
+    }
+
+    /**
+     * Test Staff is forbidden from GET /api/customers/{id} (RFM / detail),
+     * but can access GET /reference/customers (dropdown selection).
+     */
+    public function test_staff_forbidden_to_view_customer_detail_and_can_access_reference_customers(): void
+    {
+        $staff = User::where('email', 'staff1@srms.com')->firstOrFail();
+        Sanctum::actingAs($staff, ['*']);
+
+        // Staff receives 403 on customer detail (RFM / single customer view)
+        $this->getJson('/api/customers/1')->assertStatus(403);
+
+        // Staff can access reference list for order creation (id, name, phone)
+        $refRes = $this->getJson('/api/reference/customers');
+        $refRes->assertStatus(200);
+        $this->assertIsArray($refRes->json());
+
+        // Other roles (Manager, Director, CS, Admin) can view customer detail
+        $analyticsRoles = ['manager@srms.com', 'director@srms.com', 'cs@srms.com', 'admin@srms.com'];
+        foreach ($analyticsRoles as $email) {
+            $u = User::where('email', $email)->firstOrFail();
+            Sanctum::actingAs($u, ['*']);
+            $this->getJson('/api/customers/1')->assertStatus(200);
         }
     }
 
