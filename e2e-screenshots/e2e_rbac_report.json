@@ -1,0 +1,353 @@
+[
+  {
+    "id": "TC1.1",
+    "role": "Admin",
+    "steps": "1. Đăng nhập admin@srms.com -> 2. Kiểm tra TopNav -> 3. Kiểm tra URL mặc định",
+    "expected": "TopNav hiện vai trò \"Admin\", URL chuyển về \"/dashboard\"",
+    "actual": "TopNav chứa \"Admin\", URL hiện tại \"/dashboard\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.1_admin_login.png"
+  },
+  {
+    "id": "TC1.2",
+    "role": "Director",
+    "steps": "1. Đăng nhập director@srms.com -> 2. Kiểm tra TopNav -> 3. Kiểm tra URL mặc định",
+    "expected": "TopNav hiện vai trò \"Director\", URL chuyển về \"/dashboard\"",
+    "actual": "TopNav chứa \"Director\", URL hiện tại \"/dashboard\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.2_director_login.png"
+  },
+  {
+    "id": "TC1.3",
+    "role": "Manager",
+    "steps": "1. Đăng nhập manager@srms.com -> 2. Kiểm tra TopNav -> 3. Kiểm tra URL mặc định",
+    "expected": "TopNav hiện vai trò \"Manager\", URL chuyển về \"/dashboard\"",
+    "actual": "TopNav chứa \"Manager\", URL hiện tại \"/dashboard\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.3_manager_login.png"
+  },
+  {
+    "id": "TC1.4",
+    "role": "Staff",
+    "steps": "1. Đăng nhập staff1@srms.com -> 2. Kiểm tra TopNav -> 3. Kiểm tra URL mặc định",
+    "expected": "TopNav hiện vai trò \"Staff\", URL chuyển về \"/orders\"",
+    "actual": "TopNav chứa \"Staff\", URL hiện tại \"/orders\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.4_staff_login.png"
+  },
+  {
+    "id": "TC1.5",
+    "role": "Customer Service",
+    "steps": "1. Đăng nhập cs@srms.com -> 2. Kiểm tra TopNav -> 3. Kiểm tra URL mặc định",
+    "expected": "TopNav hiện vai trò \"Customer Service\", URL chuyển về \"/customers-analytics\"",
+    "actual": "TopNav chứa \"Customer Service\", URL hiện tại \"/customers-analytics\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.5_cs_login.png"
+  },
+  {
+    "id": "TC1.6",
+    "role": "Staff after Admin",
+    "steps": "1. Login Admin -> 2. Logout -> 3. Login Staff -> 4. Kiểm tra quyền phiên cũ",
+    "expected": "Staff không còn sót menu Admin",
+    "actual": "Bị rò rỉ menu phiên cũ: [Products, Orders, Inventory, Promotions, Settings]",
+    "status": "FAIL",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.6_session_isolation.png"
+  },
+  {
+    "id": "TC2.1",
+    "role": "Admin",
+    "steps": "1. Đăng nhập admin@srms.com -> 2. Đọc toàn bộ danh sách Nav Items trên Sidebar",
+    "expected": "Có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users, Settings]. Không có: []",
+    "actual": "Thực tế có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users, Settings]. ",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2.1_admin_sidebar.png"
+  },
+  {
+    "id": "TC2.2",
+    "role": "Director",
+    "steps": "1. Đăng nhập director@srms.com -> 2. Đọc toàn bộ danh sách Nav Items trên Sidebar",
+    "expected": "Có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log]. Không có: [Users]",
+    "actual": "Thực tế có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Settings]. ",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2.2_director_sidebar.png"
+  },
+  {
+    "id": "TC2.3",
+    "role": "Manager",
+    "steps": "1. Đăng nhập manager@srms.com -> 2. Đọc toàn bộ danh sách Nav Items trên Sidebar",
+    "expected": "Có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights]. Không có: [Users, Activity Log]",
+    "actual": "Thực tế có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Settings]. ",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2.3_manager_sidebar.png"
+  },
+  {
+    "id": "TC2.4",
+    "role": "Staff",
+    "steps": "1. Đăng nhập staff1@srms.com -> 2. Đọc toàn bộ danh sách Nav Items trên Sidebar",
+    "expected": "Có: [Products, Orders, Inventory, Promotions]. Không có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Customers, AI Recommendations, AI Insights, Activity Log, Users]",
+    "actual": "Thực tế có: [Products, Orders, Inventory, Promotions, Settings]. ",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2.4_staff_sidebar.png"
+  },
+  {
+    "id": "TC2.5",
+    "role": "Customer Service",
+    "steps": "1. Đăng nhập cs@srms.com -> 2. Đọc toàn bộ danh sách Nav Items trên Sidebar",
+    "expected": "Có: [Customers]. Không có: [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users]",
+    "actual": "Thực tế có: [Customers, Settings]. ",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2.5_cs_sidebar.png"
+  },
+  {
+    "id": "TC3.1",
+    "role": "Customer Service",
+    "steps": "1. Đăng nhập CS -> 2. Gõ URL /orders -> 3. Gõ URL /dashboard",
+    "expected": "Bị chặn cả 2 URL và tự động điều hướng về /customers-analytics",
+    "actual": "Truy cập /orders chuyển về \"/customers-analytics\", /dashboard chuyển về \"/customers-analytics\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC3.1a_cs_orders_blocked.png"
+  },
+  {
+    "id": "TC3.2",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Gõ URL /revenue-analytics, /dashboard, /users",
+    "expected": "Bị chặn cả 3 URL và tự động chuyển hướng về /orders",
+    "actual": "Cả 3 URL đều bị chặn và chuyển hướng về \"/orders\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC3.2_staff_blocked.png"
+  },
+  {
+    "id": "TC3.3",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Gõ URL /activity-logs, /users",
+    "expected": "Bị chặn cả 2 URL và tự động chuyển hướng về /dashboard",
+    "actual": "Cả 2 URL bị chặn và chuyển hướng về \"/dashboard\"",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC3.3_manager_blocked.png"
+  },
+  {
+    "id": "TC3.4",
+    "role": "CS, Staff, Manager (API)",
+    "steps": "1. Gọi trực tiếp endpoint backend trái quyền bằng Bearer Token",
+    "expected": "Backend trả về HTTP 403 Forbidden cho tất cả các hành vi vượt quyền",
+    "actual": "CS -> /api/orders: 403; Staff -> /api/analytics/revenue: 403; Manager -> /api/activity-logs: 403",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC3.3_manager_blocked.png"
+  },
+  {
+    "id": "TC4.1_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /orders -> 3. Kiểm tra nút Create Order -> 4. Mở chi tiết đơn xem nút Process/Cancel/Refund",
+    "expected": "CreateOrder: true, Process/Completed: true, Cancel/Refund: true",
+    "actual": "CreateOrder: true, Process/Completed: false, Cancel/Refund: true (Cancel: false, Refund: true)",
+    "status": "FAIL",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.1_admin_orders.png"
+  },
+  {
+    "id": "TC4.1_staff",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Vào /orders -> 3. Kiểm tra nút Create Order -> 4. Mở chi tiết đơn xem nút Process/Cancel/Refund",
+    "expected": "CreateOrder: true, Process/Completed: true, Cancel/Refund: false",
+    "actual": "CreateOrder: true, Process/Completed: false, Cancel/Refund: false (Cancel: false, Refund: false)",
+    "status": "FAIL",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.1_staff_orders.png"
+  },
+  {
+    "id": "TC4.1_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /orders -> 3. Kiểm tra nút Create Order -> 4. Mở chi tiết đơn xem nút Process/Cancel/Refund",
+    "expected": "CreateOrder: false, Process/Completed: false, Cancel/Refund: true",
+    "actual": "CreateOrder: false, Process/Completed: false, Cancel/Refund: true (Cancel: false, Refund: true)",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.1_manager_orders.png"
+  },
+  {
+    "id": "TC4.1_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /orders -> 3. Kiểm tra nút Create Order -> 4. Mở chi tiết đơn xem nút Process/Cancel/Refund",
+    "expected": "CreateOrder: false, Process/Completed: false, Cancel/Refund: false",
+    "actual": "CreateOrder: false, Process/Completed: false, Cancel/Refund: false (Cancel: false, Refund: false)",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.1_director_orders.png"
+  },
+  {
+    "id": "TC4.2_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /ai-recommendations -> 3. Kiểm tra nút Apply & Dismiss",
+    "expected": "Có nút Apply/Dismiss: true",
+    "actual": "Nút Apply: true, Nút Dismiss: true",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.2_admin_ai_recs.png"
+  },
+  {
+    "id": "TC4.2_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /ai-recommendations -> 3. Kiểm tra nút Apply & Dismiss",
+    "expected": "Có nút Apply/Dismiss: true",
+    "actual": "Nút Apply: true, Nút Dismiss: true",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.2_manager_ai_recs.png"
+  },
+  {
+    "id": "TC4.2_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /ai-recommendations -> 3. Kiểm tra nút Apply & Dismiss",
+    "expected": "Có nút Apply/Dismiss: false",
+    "actual": "Nút Apply: false, Nút Dismiss: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.2_director_ai_recs.png"
+  },
+  {
+    "id": "TC4.3_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /inventory -> 3. Kiểm tra nút Adjust Stock trong bảng",
+    "expected": "Hiển thị nút Adjust: true",
+    "actual": "Hiển thị nút Adjust: true",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.3_admin_inventory.png"
+  },
+  {
+    "id": "TC4.3_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /inventory -> 3. Kiểm tra nút Adjust Stock trong bảng",
+    "expected": "Hiển thị nút Adjust: true",
+    "actual": "Hiển thị nút Adjust: true",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.3_manager_inventory.png"
+  },
+  {
+    "id": "TC4.3_staff",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Vào /inventory -> 3. Kiểm tra nút Adjust Stock trong bảng",
+    "expected": "Hiển thị nút Adjust: false",
+    "actual": "Hiển thị nút Adjust: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.3_staff_inventory.png"
+  },
+  {
+    "id": "TC4.3_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /inventory -> 3. Kiểm tra nút Adjust Stock trong bảng",
+    "expected": "Hiển thị nút Adjust: false",
+    "actual": "Hiển thị nút Adjust: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.3_director_inventory.png"
+  },
+  {
+    "id": "TC4.4_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /promotions (nút Create) -> 3. Vào chi tiết khuyến mãi (nút End Campaign)",
+    "expected": "Create Promotion: true, End Campaign: true",
+    "actual": "Create Promotion: true, End Campaign: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.4_admin_promotions.png"
+  },
+  {
+    "id": "TC4.4_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /promotions (nút Create) -> 3. Vào chi tiết khuyến mãi (nút End Campaign)",
+    "expected": "Create Promotion: true, End Campaign: true",
+    "actual": "Create Promotion: true, End Campaign: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.4_manager_promotions.png"
+  },
+  {
+    "id": "TC4.4_staff",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Vào /promotions (nút Create) -> 3. Vào chi tiết khuyến mãi (nút End Campaign)",
+    "expected": "Create Promotion: false, End Campaign: false",
+    "actual": "Create Promotion: false, End Campaign: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.4_staff_promotions.png"
+  },
+  {
+    "id": "TC4.4_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /promotions (nút Create) -> 3. Vào chi tiết khuyến mãi (nút End Campaign)",
+    "expected": "Create Promotion: false, End Campaign: false",
+    "actual": "Create Promotion: false, End Campaign: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.4_director_promotions.png"
+  },
+  {
+    "id": "TC4.5_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /products -> 3. Kiểm tra nút Add Product, Edit, Delete",
+    "expected": "Có nút Add/Edit/Delete: true",
+    "actual": "Add Product: true, Edit: true, Delete: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.5_admin_products.png"
+  },
+  {
+    "id": "TC4.5_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /products -> 3. Kiểm tra nút Add Product, Edit, Delete",
+    "expected": "Có nút Add/Edit/Delete: false",
+    "actual": "Add Product: false, Edit: false, Delete: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.5_manager_products.png"
+  },
+  {
+    "id": "TC4.5_staff",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Vào /products -> 3. Kiểm tra nút Add Product, Edit, Delete",
+    "expected": "Có nút Add/Edit/Delete: false",
+    "actual": "Add Product: false, Edit: false, Delete: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.5_staff_products.png"
+  },
+  {
+    "id": "TC4.5_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /products -> 3. Kiểm tra nút Add Product, Edit, Delete",
+    "expected": "Có nút Add/Edit/Delete: false",
+    "actual": "Add Product: false, Edit: false, Delete: false",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.5_director_products.png"
+  },
+  {
+    "id": "TC4.6_admin",
+    "role": "Admin",
+    "steps": "1. Đăng nhập Admin -> 2. Vào /customers-analytics kiểm tra \"Add Customer\" -> 3. Vào /customer-detail?customerId=1 kiểm tra \"Edit Contact\"",
+    "expected": "Ghi nhận thực tế quyền UI của Admin so với Backend matrix",
+    "actual": "Trang DS (/customers-analytics): Vào được. Nút \"Add Customer\": true. Nút \"Edit Contact\": false.",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_admin_customers.png"
+  },
+  {
+    "id": "TC4.6_director",
+    "role": "Director",
+    "steps": "1. Đăng nhập Director -> 2. Vào /customers-analytics kiểm tra \"Add Customer\" -> 3. Vào /customer-detail?customerId=1 kiểm tra \"Edit Contact\"",
+    "expected": "Ghi nhận thực tế quyền UI của Director so với Backend matrix",
+    "actual": "Trang DS (/customers-analytics): Vào được. Nút \"Add Customer\": false. Nút \"Edit Contact\": false.",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_director_customers.png"
+  },
+  {
+    "id": "TC4.6_manager",
+    "role": "Manager",
+    "steps": "1. Đăng nhập Manager -> 2. Vào /customers-analytics kiểm tra \"Add Customer\" -> 3. Vào /customer-detail?customerId=1 kiểm tra \"Edit Contact\"",
+    "expected": "Ghi nhận thực tế quyền UI của Manager so với Backend matrix",
+    "actual": "Trang DS (/customers-analytics): Vào được. Nút \"Add Customer\": false. Nút \"Edit Contact\": false.",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_manager_customers.png"
+  },
+  {
+    "id": "TC4.6_staff",
+    "role": "Staff",
+    "steps": "1. Đăng nhập Staff -> 2. Vào /customers-analytics kiểm tra \"Add Customer\" -> 3. Vào /customer-detail?customerId=1 kiểm tra \"Edit Contact\"",
+    "expected": "Ghi nhận thực tế quyền UI của Staff so với Backend matrix",
+    "actual": "Trang DS (/customers-analytics): Bị chặn. Nút \"Add Customer\": false. Nút \"Edit Contact\": false.",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_staff_customers.png"
+  },
+  {
+    "id": "TC4.6_cs",
+    "role": "Customer Service",
+    "steps": "1. Đăng nhập Customer Service -> 2. Vào /customers-analytics kiểm tra \"Add Customer\" -> 3. Vào /customer-detail?customerId=1 kiểm tra \"Edit Contact\"",
+    "expected": "Ghi nhận thực tế quyền UI của Customer Service so với Backend matrix",
+    "actual": "Trang DS (/customers-analytics): Vào được. Nút \"Add Customer\": false. Nút \"Edit Contact\": false.",
+    "status": "PASS",
+    "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_cs_customers.png"
+  }
+]

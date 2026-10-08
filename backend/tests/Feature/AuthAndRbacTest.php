@@ -123,13 +123,12 @@ class AuthAndRbacTest extends TestCase
 
     /**
      * Test CustomerController store and update are explicitly permitted
-     * for all roles (Staff, Manager, Admin) as decided by product design.
+     * for Staff and Admin (and Customer Service for update).
      */
-    public function test_customer_store_and_update_permitted_for_staff_manager_and_admin(): void
+    public function test_customer_store_and_update_permitted_for_staff_and_admin(): void
     {
         $roles = [
             'staff' => 'staff1@srms.com',
-            'manager' => 'manager@srms.com',
             'admin' => 'admin@srms.com',
         ];
 
@@ -161,6 +160,26 @@ class AuthAndRbacTest extends TestCase
                     'message' => 'Customer updated successfully.'
                 ]);
         }
+    }
+
+    /**
+     * Test Manager is strictly forbidden from creating or updating customers (HTTP 403).
+     */
+    public function test_manager_forbidden_to_create_or_update_customer(): void
+    {
+        $manager = User::where('email', 'manager@srms.com')->firstOrFail();
+        Sanctum::actingAs($manager, ['*']);
+
+        // 1. Manager cannot create customer
+        $this->postJson('/api/customers', [
+            'name' => 'Manager Attempted Customer',
+            'phone' => '0988776655',
+        ])->assertStatus(403);
+
+        // 2. Manager cannot update customer
+        $this->putJson('/api/customers/1', [
+            'name' => 'Manager Attempted Update',
+        ])->assertStatus(403);
     }
 
     /**

@@ -26,18 +26,17 @@
 1. **Login as Staff**:
    - URL: `http://localhost:5173/login`
    - Credentials: `staff1@srms.com` / `password`
-   - **Observer Note**: Staff interface is streamlined for daily operations. High-level financial reporting and administrative settings are restricted.
+   - **Observer Note**: Staff interface is streamlined for daily operations. High-level financial reporting and administrative settings are restricted. Default landing page is **Orders** (`/orders`).
 
-2. **Walk-in Customer Registration**:
-   - Navigate to **Customers** (`/customers`).
-   - Click **Add Customer**.
-   - Input: Name: `Tran Van An`, Phone: `0912345678`, Email: `an.tran@example.com`, Address: `123 Nguyen Hue, Da Nang`.
-   - Click **Save Customer**.
-   - **Technical Highlight**: System issues `POST /api/customers` (HTTP 201). Customer is initialized with `total_spending = 0`, `total_orders = 0`, and receives an initial segment snapshot (`Recent`, $R=5, F=1, M=1$). Staff is explicitly authorized to register walk-ins directly at checkout.
-
-3. **Order Creation with Price Locking & Promotion**:
+2. **Walk-in Customer Registration & Order Creation**:
    - Navigate to **Orders** (`/orders`) -> Click **Create Order**.
-   - Select Customer `Tran Van An`.
+   - In the Create Order modal, click **New customer** (`+`).
+   - Input: Name: `Tran Van An`, Phone: `0912345678`, Email: `an.tran@example.com`, Address: `123 Nguyen Hue, Da Nang`.
+   - Click **Save & Select Customer**.
+   - **Technical Highlight**: System issues `POST /api/customers` (HTTP 201). Customer is initialized with `total_spending = 0`, `total_orders = 0`, and receives an initial segment snapshot (`Recent`, $R=5, F=1, M=1$). Staff is authorized to register walk-ins inline directly at POS without needing broad access to the Customers Analytics module.
+   - The newly registered customer `Tran Van An` is automatically selected in the order form.
+
+3. **Order Item Configuration with Price Locking & Promotion**:
    - Add Product `Product 1` (SKU-0001) with Quantity: `2`.
    - Select an active Promotion (e.g., 10% Discount).
    - **Technical Highlight**: Unit price is automatically locked from `products.current_price` on the server. Client-side price tampering is completely blocked. Promotion discount is verified against start/end dates.
@@ -55,8 +54,8 @@
 5. **RBAC Boundary Demonstration (Staff Rejection)**:
    - While still on the completed order, attempt to change status to **`Refunded`** or **`Cancelled`**.
    - System returns **HTTP 403 Forbidden**: *"Forbidden. Only Admin or Manager can cancel or refund orders."*
-   - Navigate directly to `/analytics/revenue`: Access is denied (HTTP 403).
-   - **Key Takeaway**: Financial reversals and store profitability analytics are strictly walled off from operational staff.
+   - Attempt to navigate directly to `/revenue-analytics` or `/customers-analytics`: Access is denied (automatically redirected to `/orders` or HTTP 403).
+   - **Key Takeaway**: Financial reversals, store profitability analytics, and customer segmentation are strictly walled off from operational staff.
 
 ---
 
@@ -71,7 +70,8 @@
    - View top summary cards: **Total Revenue**, **Total Orders**, **Profit Margin**, and **Active Customers**.
    - Observe 2-period growth indicators (comparing against the preceding equivalent time horizon).
 
-3. **Multi-Dimensional Revenue Analytics (`/analytics/revenue`)**:
+3. **Multi-Dimensional Revenue Analytics (`/revenue-analytics`)**:
+   - Backend API: `GET /api/analytics/revenue`.
    - View the 5 Core Financial KPIs: Total Revenue, Gross Profit, Profit Margin, Orders, and Revenue Acceleration.
    - Inspect **Monthly Trend**: Aggregated by Year-Month (`%Y-%m`) to eliminate multi-year collision.
    - Inspect **Category Distribution** and **Customer Segment Revenue Contribution**.
@@ -90,7 +90,7 @@
      - **Customer At-Risk Segment**: Accurately matches customer count and historical revenue at risk from the RFM segmentation engine.
      - **Promotion Monitoring**: Tracks running campaigns to avoid margin erosion.
    - Click **"View Product"** on an insight: Seamlessly opens the product detail page with active filters.
-   - Click **"Take Action"**: Redirects directly to **AI Recommendations**.
+   - Click **"Take Action"**: Redirects directly to **AI Recommendations** (`/ai-recommendations`).
 
 6. **1-Click Action Execution**:
    - On the AI Recommendations page, review the recommendation card.
@@ -168,10 +168,12 @@
 
 ### Q4: Phân quyền RBAC (Role-Based Access Control) được tổ chức như thế nào và tại sao Nhân viên (Staff) được phép thêm/sửa khách hàng?
 **Trả lời:**
-> "Hệ thống phân chia 3 vai trò rõ ràng và được kiểm soát chặt chẽ ở tầng Backend (API Middleware và Policy):
-> - **Staff**: Được tối ưu cho quy trình bán hàng tại quầy. Staff được **chủ động phân quyền** thêm mới và cập nhật thông tin khách hàng (`CustomerController::store`, `update`) vì trong nghiệp vụ thực tế, nhân viên thu ngân là người trực tiếp tiếp xúc và đăng ký thẻ thành viên cho khách hàng mới ngay khi thanh toán. Tuy nhiên, Staff bị cấm hoàn tiền/hủy đơn (`PUT /orders/{id}`) và không có quyền xem phân tích tài chính chuyên sâu (`/analytics/revenue`).
-> - **Manager**: Có toàn quyền theo dõi báo cáo doanh thu đa chiều, dự báo nhu cầu, xem AI Insights và phê duyệt áp dụng khuyến mãi/giá bán (`AI Recommendations`).
-> - **Admin**: Nắm quyền quản trị tối cao, quản lý danh mục sản phẩm, người dùng hệ thống, và thực hiện xóa/phê duyệt đặc quyền."
+> "Hệ thống phân chia 5 vai trò rõ ràng và được kiểm soát chặt chẽ ở cả tầng Backend (PermissionService matrix, API Middleware, Policy) lẫn tầng Frontend (UI Route Guards, Dynamic Action Filtering):
+> - **Staff**: Tối ưu cho quy trình bán hàng tại quầy. Staff được **chủ động phân quyền** thêm mới khách hàng inline ngay trong modal tạo đơn hàng (`POST /api/customers`) vì thu ngân là người trực tiếp tiếp xúc và đăng ký thẻ thành viên khi thanh toán. Tuy nhiên, Staff bị chặn hoàn toàn khỏi trang tổng hợp phân tích khách hàng (`/customers-analytics`), không có quyền hoàn tiền/hủy đơn (`orders.cancel_refund`), và không được xem báo cáo tài chính (`/revenue-analytics`).
+> - **Manager**: Tập trung vào giám sát hiệu suất và ra quyết định kinh doanh. Theo ma trận phân quyền chuẩn, Manager chỉ có quyền **XEM** danh sách và phân tích chuyên sâu khách hàng (`customer.view`), **KHÔNG** trực tiếp tạo hoặc sửa khách hàng (`customer.create`, `customer.update` chỉ dành cho Staff tạo tại POS, Customer Service chăm sóc sau bán và Admin). Manager có quyền xử lý khiếu nại (Hủy/Hoàn tiền đơn hàng), theo dõi báo cáo doanh thu đa chiều (`/revenue-analytics`), dự báo (`/forecast`), xem AI Insights và phê duyệt khuyến mãi/giá bán (`/ai-recommendations`).
+> - **Customer Service**: Tập trung vào chăm sóc khách hàng sau bán. CS chỉ được truy cập duy nhất module Khách hàng (`/customers-analytics`), được phép cập nhật thông tin liên hệ của khách hàng (`customer.update`), nhưng không thể đăng ký khách hàng mới hoặc can thiệp vào đơn hàng, kho và tài chính.
+> - **Director**: Giám sát cấp cao với quyền Read-Only toàn diện trên các module vận hành, báo cáo tài chính và Activity Log; bị chặn tạo/sửa dữ liệu và không quản lý tài khoản người dùng.
+> - **Admin**: Quản trị viên tối cao, nắm toàn quyền trên mọi module (Users, Catalog, Settings, Activity Log, CRUD dữ liệu)."
 
 ---
 
@@ -186,11 +188,12 @@
 
 ### Q6: Bộ kiểm thử tự động (Automated Testing) được xây dựng như thế nào để đảm bảo chất lượng hệ thống?
 **Trả lời:**
-> "Hệ thống sở hữu bộ kiểm thử tự động toàn diện gồm **5 Test Suite (23 test cases, 427 assertions)** chạy trên môi trường MySQL thực tế:
-> 1. `AuthAndRbacTest`: Kiểm tra xác thực Sanctum, chặn Staff (403), cho phép Manager/Admin, và xác nhận Staff/Manager/Admin đều thao tác được với Customer.
-> 2. `OrderLifecycleAndAcidTest`: Kiểm tra vòng đời đơn hàng, khóa giá chống giả mạo, trừ kho nguyên tử, rollback khi hết hàng, và **hoàn tiền trên ngày quá khứ cụ thể** nhằm bảo vệ hệ thống khỏi lỗi hồi quy `revenue_daily`.
-> 3. `PromotionLogicTest`: Kiểm tra công thức giảm giá phần trăm/cố định, cơ chế chống xóa khuyến mãi đã có đơn hàng, và phòng ngừa lỗi chia cho 0.
-> 4. `ForecastAndInsightsTest`: Kiểm tra dải biên SMA 90% CI, trường hợp biên $N < 2$, và 4 trụ cột AI insights.
-> 5. `CustomerAndRevenueAnalyticsTest`: Kiểm tra tính nhất quán Single Source of Truth, phân tích doanh thu 5 KPIs, và đảm bảo không xuất hiện chiều dữ liệu giả mạo.
+> "Hệ thống sở hữu bộ kiểm thử tự động toàn diện gồm **32 test cases, 502 assertions, 100% passing** chạy trên môi trường MySQL thực tế:
+> 1. `AuthAndRbacTest`: Kiểm tra xác thực Sanctum, phân quyền 5 vai trò, chặn Staff (403), chặn Manager tạo/sửa khách hàng (403), cho phép Staff và Admin tạo khách hàng, kiểm tra cập nhật hồ sơ cá nhân và ghi Activity Log.
+> 2. `Rbac5RolesAndActivityLogTest`: Kiểm thử ma trận phân quyền 5 vai trò (Director, Manager, Staff, Customer Service, Admin) trên mọi API endpoints, kiểm tra tính toàn vẹn và chi tiết của Activity Log.
+> 3. `OrderLifecycleAndAcidTest`: Kiểm tra vòng đời đơn hàng, khóa giá chống giả mạo, trừ kho nguyên tử, rollback khi hết hàng, và **hoàn tiền trên ngày quá khứ cụ thể** nhằm bảo vệ hệ thống khỏi lỗi hồi quy `revenue_daily`.
+> 4. `PromotionLogicTest`: Kiểm tra công thức giảm giá phần trăm/cố định, cơ chế chống xóa khuyến mãi đã có đơn hàng, và phòng ngừa lỗi chia cho 0.
+> 5. `ForecastAndInsightsTest`: Kiểm tra dải biên SMA 90% CI, trường hợp biên $N < 2$, và 4 trụ cột AI insights.
+> 6. `CustomerAndRevenueAnalyticsTest`: Kiểm tra tính nhất quán Single Source of Truth, phân tích doanh thu 5 KPIs, và đảm bảo không xuất hiện chiều dữ liệu giả mạo.
 >
 > Tất cả các test đều dùng trait `DatabaseTransactions` — mỗi test case tự động rollback toàn bộ sau khi chạy xong, giữ nguyên vẹn dữ liệu mẫu mà không làm sai lệch cơ sở dữ liệu."

@@ -66,8 +66,10 @@ export function getDefaultPageForRole(roleId?: number): PageId {
 
 export function isPageAccessible(roleId: number | undefined, page: PageId): boolean {
   if (!roleId) return false;
-  // All authenticated users can access their own profile and personal settings
-  if (page === 'profile' || page === 'settings') return true;
+  // All authenticated users can access their own profile
+  if (page === 'profile') return true;
+  // Settings is strictly accessible to Admin only
+  if (page === 'settings') return roleId === 1;
   if (roleId === 1) return true; // Admin has full access
 
   if (roleId === 4) {

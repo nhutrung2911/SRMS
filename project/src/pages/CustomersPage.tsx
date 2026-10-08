@@ -32,7 +32,7 @@ const statusVariant: Record<string, any> = {
 
 export function CustomersPage({ navigate, addToast }: PageProps) {
   const user = getCurrentUser();
-  const canCreateCustomer = user?.role_id === 1 || user?.role_id === 3;
+  const canCreateCustomer = user?.role_id === 1;
   const [search, setSearch] = useState('');
   const [segment, setSegment] = useState('all');
   const [loading, setLoading] = useState(true);

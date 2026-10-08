@@ -1,0 +1,173 @@
+{
+  "results": [
+    {
+      "id": "TC1.6",
+      "role": "Staff (sau Admin)",
+      "steps": "1. Admin đăng nhập -> 2. Đăng xuất -> 3. Staff đăng nhập -> 4. Kiểm tra menu Users và Activity Log có sót không",
+      "expected": "Staff hoàn toàn KHÔNG thấy menu Users và Activity Log của Admin (cách ly phiên chuẩn xác)",
+      "actual": "Admin Users: true, Admin Logs: true. Staff Users: false, Staff Logs: false",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC1.6_staff_isolation_reevaluated.png"
+    },
+    {
+      "id": "TC2_admin",
+      "role": "Admin",
+      "steps": "1. Đăng nhập Admin -> 2. Đọc toàn bộ danh sách menu Sidebar",
+      "expected": "Hiện đủ Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users, Settings; Ẩn tuyệt đối: None",
+      "actual": "Menu thực tế (14): [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users, Settings].  ",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2_admin_menu.png"
+    },
+    {
+      "id": "TC2_director",
+      "role": "Director",
+      "steps": "1. Đăng nhập Director -> 2. Đọc toàn bộ danh sách menu Sidebar",
+      "expected": "Hiện đủ Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log; Ẩn tuyệt đối: Users, Settings",
+      "actual": "Menu thực tế (12): [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log].  ",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2_director_menu.png"
+    },
+    {
+      "id": "TC2_manager",
+      "role": "Manager",
+      "steps": "1. Đăng nhập Manager -> 2. Đọc toàn bộ danh sách menu Sidebar",
+      "expected": "Hiện đủ Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights; Ẩn tuyệt đối: Users, Settings, Activity Log",
+      "actual": "Menu thực tế (11): [Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Customers, Inventory, Promotions, AI Recommendations, AI Insights].  ",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2_manager_menu.png"
+    },
+    {
+      "id": "TC2_staff",
+      "role": "Staff",
+      "steps": "1. Đăng nhập Staff -> 2. Đọc toàn bộ danh sách menu Sidebar",
+      "expected": "Hiện đủ Orders, Products, Inventory, Promotions; Ẩn tuyệt đối: Dashboard, Revenue Analytics, Forecast, Product Analytics, Customers, AI Recommendations, AI Insights, Activity Log, Users, Settings",
+      "actual": "Menu thực tế (4): [Products, Orders, Inventory, Promotions].  ",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2_staff_menu.png"
+    },
+    {
+      "id": "TC2_cs",
+      "role": "Customer Service",
+      "steps": "1. Đăng nhập Customer Service -> 2. Đọc toàn bộ danh sách menu Sidebar",
+      "expected": "Hiện đủ Customers; Ẩn tuyệt đối: Dashboard, Revenue Analytics, Forecast, Product Analytics, Products, Orders, Inventory, Promotions, AI Recommendations, AI Insights, Activity Log, Users, Settings",
+      "actual": "Menu thực tế (1): [Customers].  ",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC2_cs_menu.png"
+    },
+    {
+      "id": "TC4.6_admin",
+      "role": "Admin",
+      "steps": "1. Đăng nhập Admin -> 2. Kiểm tra Add Customer tại /customers-analytics -> 3. Kiểm tra Edit Contact tại /customer-detail?customerId=1",
+      "expected": "Add Customer: true, Edit Contact: true",
+      "actual": "Trang DS: Vào được. Add Customer: true, Edit Contact: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_admin_customers_rerun.png"
+    },
+    {
+      "id": "TC4.6_director",
+      "role": "Director",
+      "steps": "1. Đăng nhập Director -> 2. Kiểm tra Add Customer tại /customers-analytics -> 3. Kiểm tra Edit Contact tại /customer-detail?customerId=1",
+      "expected": "Add Customer: false, Edit Contact: false",
+      "actual": "Trang DS: Vào được. Add Customer: false, Edit Contact: false",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_director_customers_rerun.png"
+    },
+    {
+      "id": "TC4.6_manager",
+      "role": "Manager",
+      "steps": "1. Đăng nhập Manager -> 2. Kiểm tra Add Customer tại /customers-analytics -> 3. Kiểm tra Edit Contact tại /customer-detail?customerId=1",
+      "expected": "Add Customer: false, Edit Contact: false",
+      "actual": "Trang DS: Vào được. Add Customer: false, Edit Contact: false",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_manager_customers_rerun.png"
+    },
+    {
+      "id": "TC4.6_staff",
+      "role": "Staff",
+      "steps": "1. Đăng nhập Staff -> 2. Kiểm tra Add Customer tại /customers-analytics -> 3. Kiểm tra Edit Contact tại /customer-detail?customerId=1",
+      "expected": "Add Customer: false, Edit Contact: true",
+      "actual": "Trang DS: Bị chặn. Add Customer: false, Edit Contact: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_staff_customers_rerun.png"
+    },
+    {
+      "id": "TC4.6_cs",
+      "role": "Customer Service",
+      "steps": "1. Đăng nhập Customer Service -> 2. Kiểm tra Add Customer tại /customers-analytics -> 3. Kiểm tra Edit Contact tại /customer-detail?customerId=1",
+      "expected": "Add Customer: false, Edit Contact: true",
+      "actual": "Trang DS: Vào được. Add Customer: false, Edit Contact: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC4.6_cs_customers_rerun.png"
+    },
+    {
+      "id": "TC_Staff_Inline",
+      "role": "Staff",
+      "steps": "1. Staff vào /orders -> 2. Mở Create Order -> 3. Bấm \"New customer\" -> 4. Điền tên bắt buộc, sđt, email, địa chỉ -> 5. Bấm \"Save & Select Customer\"",
+      "expected": "Tạo khách hàng thành công (HTTP 201) và tự động chọn \"[E2E] Walkin 3651\" trong dropdown",
+      "actual": "Khách hàng vừa tạo ID #283: \"[E2E] Walkin 3651 (0988112233)\" đã được tự chọn",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC_Staff_Inline_Customer_Created.png"
+    },
+    {
+      "id": "TC5.1_admin_audit",
+      "role": "Admin",
+      "steps": "1. Admin cập nhật hồ sơ cá nhân sang \"[E2E] Admin Profile Test 9865\" -> 2. Truy cập /activity-logs -> 3. Kiểm tra dòng log xuất hiện",
+      "expected": "Hành động UPDATE_PROFILE hiển thị ngay lập tức trong Activity Log với Causer=Admin, chi tiết thay đổi và timestamp",
+      "actual": "Dòng log tồn tại trên UI: true. Bảng log hiển thị đầy đủ thông tin causer/action/timestamp.",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC5.1_admin_activity_log_verified.png"
+    },
+    {
+      "id": "TC5.2_director_audit",
+      "role": "Director",
+      "steps": "1. Đăng nhập Director -> 2. Vào /activity-logs -> 3. Kiểm tra xem bảng log có hiển thị dữ liệu kiểm toán không",
+      "expected": "Director truy cập thành công /activity-logs ở chế độ xem kiểm toán (Read-Only)",
+      "actual": "Bảng Activity Log hiển thị dữ liệu: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC5.2_director_audit_view.png"
+    },
+    {
+      "id": "TC5.3_manager_forbidden",
+      "role": "Manager",
+      "steps": "1. Đăng nhập Manager -> 2. Điều hướng trực tiếp tới /activity-logs -> 3. Kiểm tra có bị chặn không",
+      "expected": "Manager bị chặn khỏi /activity-logs (chuyển hướng về /dashboard)",
+      "actual": "URL sau điều hướng: /dashboard. Bị chặn: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC5.3_manager_blocked_activity_logs.png"
+    },
+    {
+      "id": "TC6.1_cs_edit",
+      "role": "Customer Service",
+      "steps": "1. CS vào /customer-detail?customerId=1 -> 2. Bấm \"Edit Contact\" -> 3. Đổi Địa chỉ thành \"[E2E] 456 Customer Support Blvd 9420\" và SĐT \"0988776655\" -> 4. Bấm \"Save Changes\"",
+      "expected": "Cập nhật thành công (HTTP 200) và giao diện hiển thị địa chỉ mới",
+      "actual": "Địa chỉ mới hiển thị trên giao diện: true",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC6.1_cs_customer_updated.png"
+    },
+    {
+      "id": "TC6.2_cs_restore",
+      "role": "Customer Service",
+      "steps": "1. Bấm \"Edit Contact\" -> 2. Xóa các trường tạm để khôi phục phone=null, address=null ban đầu -> 3. Bấm \"Save Changes\"",
+      "expected": "Khôi phục hoàn toàn dữ liệu gốc của Customer #1 (Phone: null, Address: null)",
+      "actual": "Dữ liệu đã được khôi phục thành công về nguyên bản (Phone: N/A, Address: N/A)",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC6.2_cs_customer_restored.png"
+    },
+    {
+      "id": "TC6.3_cs_boundaries",
+      "role": "Customer Service",
+      "steps": "1. CS thử truy cập các URL: /orders, /revenue-analytics, /inventory, /settings -> 2. Kiểm tra điều hướng chặn",
+      "expected": "Bị chặn 100% khỏi các module ngoài quyền và chuyển hướng về /customers-analytics",
+      "actual": "/orders -> Chặn (về /customers-analytics); /revenue-analytics -> Chặn (về /customers-analytics); /inventory -> Chặn (về /customers-analytics); /settings -> Chặn (về /customers-analytics)",
+      "status": "PASS",
+      "screenshot": "d:\\SRMS\\e2e-screenshots\\TC6.3_cs_routes_forbidden.png"
+    }
+  ],
+  "createdRecords": [
+    {
+      "type": "customer",
+      "id": "283",
+      "name": "[E2E] Walkin 3651"
+    }
+  ]
+}

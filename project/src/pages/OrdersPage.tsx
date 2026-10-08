@@ -46,6 +46,48 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
   });
   const [savingOrder, setSavingOrder] = useState(false);
 
+  // Inline New Customer form state
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustAddress, setNewCustAddress] = useState('');
+  const [savingNewCustomer, setSavingNewCustomer] = useState(false);
+
+  const handleCreateInlineCustomer = async () => {
+    if (!newCustName.trim()) {
+      addToast?.({ type: 'warning', title: 'Validation', message: 'Customer name is required.' });
+      return;
+    }
+    setSavingNewCustomer(true);
+    try {
+      const res = await api.post('/customers', {
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || undefined,
+        email: newCustEmail.trim() || undefined,
+        address: newCustAddress.trim() || undefined,
+      });
+      const createdId = res.data.customer_id || res.data.id;
+      const createdCustomer = {
+        id: createdId,
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || 'No phone',
+      };
+      setCustomers(prev => [createdCustomer, ...prev]);
+      setNewOrder(prev => ({ ...prev, customer_id: createdId.toString() }));
+      addToast?.({ type: 'success', title: 'Customer Created', message: `Customer "${newCustName.trim()}" created and selected.` });
+      setNewCustName('');
+      setNewCustPhone('');
+      setNewCustEmail('');
+      setNewCustAddress('');
+      setShowNewCustomerForm(false);
+    } catch (err: any) {
+      addToast?.({ type: 'error', title: 'Creation Failed', message: err.response?.data?.message || 'Error creating customer.' });
+    } finally {
+      setSavingNewCustomer(false);
+    }
+  };
+
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders');
@@ -339,16 +381,84 @@ export function OrdersPage({ navigate, initialOrderId, addToast }: PageProps & {
         }
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Customer *</label>
-            <select
-              value={newOrder.customer_id}
-              onChange={(e) => setNewOrder({...newOrder, customer_id: e.target.value})}
-              className="w-full h-9 px-3 rounded-lg border border-ink-200 focus:outline-none focus:border-brand-500"
-            >
-              <option value="">Select Customer...</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.phone || 'No phone'})</option>)}
-            </select>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-ink-700">Customer *</label>
+              <button
+                type="button"
+                onClick={() => setShowNewCustomerForm(prev => !prev)}
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 hover:underline"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {showNewCustomerForm ? 'Select Existing Customer' : 'New customer'}
+              </button>
+            </div>
+
+            {!showNewCustomerForm ? (
+              <select
+                value={newOrder.customer_id}
+                onChange={(e) => setNewOrder({...newOrder, customer_id: e.target.value})}
+                className="w-full h-9 px-3 rounded-lg border border-ink-200 focus:outline-none focus:border-brand-500"
+              >
+                <option value="">Select Customer...</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.phone || 'No phone'})</option>)}
+              </select>
+            ) : (
+              <div className="p-3 bg-brand-50/50 rounded-lg border border-brand-200 space-y-3">
+                <div className="text-xs font-semibold text-brand-800">Register New Customer</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Tran Van An"
+                      value={newCustName}
+                      onChange={(e) => setNewCustName(e.target.value)}
+                      className="w-full h-8 px-2.5 rounded border border-ink-200 text-sm focus:outline-none focus:border-brand-500 bg-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 0912345678"
+                      value={newCustPhone}
+                      onChange={(e) => setNewCustPhone(e.target.value)}
+                      className="w-full h-8 px-2.5 rounded border border-ink-200 text-sm focus:outline-none focus:border-brand-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Email</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. an.tran@example.com"
+                      value={newCustEmail}
+                      onChange={(e) => setNewCustEmail(e.target.value)}
+                      className="w-full h-8 px-2.5 rounded border border-ink-200 text-sm focus:outline-none focus:border-brand-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ink-600 mb-1">Address</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123 Nguyen Hue, Da Nang"
+                      value={newCustAddress}
+                      onChange={(e) => setNewCustAddress(e.target.value)}
+                      className="w-full h-8 px-2.5 rounded border border-ink-200 text-sm focus:outline-none focus:border-brand-500 bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="secondary" size="sm" onClick={() => setShowNewCustomerForm(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={handleCreateInlineCustomer} disabled={savingNewCustomer}>
+                    {savingNewCustomer ? 'Saving...' : 'Save & Select Customer'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

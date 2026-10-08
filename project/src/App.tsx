@@ -207,8 +207,8 @@ function App() {
       case 'forecast': return <ForecastPage navigate={navigate} addToast={addToast} />;
       case 'products-analytics': return <ProductAnalyticsPage navigate={navigate} addToast={addToast} />;
       case 'product-detail': return <ProductEditPage navigate={navigate} productId={params.productId} />;
-      case 'orders': return <OrdersPage navigate={navigate} />;
-      case 'order-detail': return <OrdersPage navigate={navigate} initialOrderId={params.orderId} />;
+      case 'orders': return <OrdersPage navigate={navigate} addToast={addToast} />;
+      case 'order-detail': return <OrdersPage navigate={navigate} initialOrderId={params.orderId} addToast={addToast} />;
       case 'customers-analytics': return <CustomersPage navigate={navigate} addToast={addToast} />;
       case 'customer-detail': return <CustomerDetailPage navigate={navigate} customerId={params.customerId ?? '1'} addToast={addToast} />;
       case 'inventory': return <InventoryPage navigate={navigate} addToast={addToast} />;

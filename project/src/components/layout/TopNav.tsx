@@ -139,16 +139,18 @@ export function TopNav({ onOpenMobileSidebar, breadcrumb, onNavigate }: TopNavPr
                   <User className="w-4 h-4 text-ink-400" />
                   My Profile
                 </button>
-                <button
-                  onClick={() => {
-                    onNavigate?.('settings');
-                    setUserOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-ink-400" />
-                  Account Settings
-                </button>
+                {user?.role_id === 1 && (
+                  <button
+                    onClick={() => {
+                      onNavigate?.('settings');
+                      setUserOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-ink-400" />
+                    Account Settings
+                  </button>
+                )}
               </div>
               <div className="border-t border-ink-100 py-1">
                 <button 
